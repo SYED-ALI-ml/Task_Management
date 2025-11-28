@@ -2,17 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Clock, User, Calendar, MoreVertical } from "lucide-react";
-
-interface Task {
-  id: string;
-  title: string;
-  description: string;
-  status: "pending" | "in-progress" | "completed" | "overdue";
-  priority: "low" | "medium" | "high" | "urgent";
-  assignee: string;
-  dueDate: string;
-  createdAt: string;
-}
+import { Task } from "@/types";
 
 interface TaskListProps {
   tasks: Task[];
@@ -21,7 +11,7 @@ interface TaskListProps {
 
 const statusColors = {
   pending: "bg-warning text-warning-foreground",
-  "in-progress": "bg-info text-info-foreground", 
+  "in-progress": "bg-info text-info-foreground",
   completed: "bg-success text-success-foreground",
   overdue: "bg-destructive text-destructive-foreground"
 };
@@ -29,7 +19,7 @@ const statusColors = {
 const priorityColors = {
   low: "bg-muted text-muted-foreground",
   medium: "bg-warning text-warning-foreground",
-  high: "bg-destructive text-destructive-foreground", 
+  high: "bg-destructive text-destructive-foreground",
   urgent: "bg-destructive text-destructive-foreground border-destructive"
 };
 
@@ -50,9 +40,9 @@ export function TaskList({ tasks, onTaskClick }: TaskListProps) {
                     {task.priority}
                   </Badge>
                 </div>
-                
+
                 <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{task.description}</p>
-                
+
                 <div className="flex items-center gap-6 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4" />
@@ -68,7 +58,7 @@ export function TaskList({ tasks, onTaskClick }: TaskListProps) {
                   </div>
                 </div>
               </div>
-              
+
               <Button variant="ghost" size="icon">
                 <MoreVertical className="w-4 h-4" />
               </Button>
@@ -76,7 +66,7 @@ export function TaskList({ tasks, onTaskClick }: TaskListProps) {
           </CardContent>
         </Card>
       ))}
-      
+
       {tasks.length === 0 && (
         <div className="text-center py-12">
           <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">

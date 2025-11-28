@@ -1,14 +1,17 @@
-import { 
-  CheckSquare, 
-  LayoutDashboard, 
-  Users, 
-  FolderOpen, 
-  Trash2, 
-  FileText, 
+import {
+  CheckSquare,
+  LayoutDashboard,
+  Users,
+  FolderOpen,
+  Trash2,
+  FileText,
   Settings,
-  Building2
+  Building2,
+  LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
+import { Button } from "@/components/ui/button";
 
 interface SidebarProps {
   activeTab: string;
@@ -27,6 +30,8 @@ const navigationItems = [
 ];
 
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
+  const { user, logout } = useAuth();
+
   return (
     <div className="w-72 bg-sidebar border-r border-sidebar-border flex flex-col">
       {/* Logo */}
@@ -68,12 +73,15 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       <div className="p-4 border-t border-sidebar-border">
         <div className="flex items-center gap-3 p-3 rounded-lg bg-sidebar-accent/50">
           <div className="w-8 h-8 bg-sidebar-primary rounded-full flex items-center justify-center text-sidebar-primary-foreground font-semibold text-sm">
-            SS
+            {user?.name?.charAt(0) || "U"}
           </div>
-          <div className="flex-1">
-            <p className="font-medium text-sidebar-foreground">Snehasish</p>
-            <p className="text-xs text-sidebar-foreground/70">Admin</p>
+          <div className="flex-1 min-w-0">
+            <p className="font-medium text-sidebar-foreground truncate">{user?.name || "User"}</p>
+            <p className="text-xs text-sidebar-foreground/70">{user?.role || "Role"}</p>
           </div>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={logout}>
+            <LogOut className="w-4 h-4" />
+          </Button>
         </div>
       </div>
     </div>

@@ -10,10 +10,11 @@ import { TaskList } from "@/components/tasks/task-list";
 
 interface DashboardDetailViewProps {
   onBack: () => void;
+  initialView?: string;
 }
 
-export function DashboardDetailView({ onBack }: DashboardDetailViewProps) {
-  const [activeView, setActiveView] = useState("dashboard");
+export function DashboardDetailView({ onBack, initialView = "dashboard" }: DashboardDetailViewProps) {
+  const [activeView, setActiveView] = useState(initialView);
 
   // Mock data for different views
   const mockTasks = [
@@ -28,7 +29,7 @@ export function DashboardDetailView({ onBack }: DashboardDetailViewProps) {
       createdAt: "2 days ago"
     },
     {
-      id: "2", 
+      id: "2",
       title: "Implement Task Automation",
       description: "Build automation features for recurring tasks and notification system.",
       status: "pending" as const,
@@ -39,7 +40,7 @@ export function DashboardDetailView({ onBack }: DashboardDetailViewProps) {
     },
     {
       id: "3",
-      title: "Setup Database Schema", 
+      title: "Setup Database Schema",
       description: "Design and implement the database structure for tasks, users, and company data.",
       status: "completed" as const,
       priority: "urgent" as const,
@@ -89,12 +90,12 @@ export function DashboardDetailView({ onBack }: DashboardDetailViewProps) {
             <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
               <div className="w-32 h-32 mb-6 opacity-60">
                 <svg viewBox="0 0 200 200" className="w-full h-full">
-                  <circle cx="100" cy="100" r="80" fill="hsl(var(--muted))" opacity="0.3"/>
-                  <rect x="70" y="80" width="60" height="4" fill="hsl(var(--primary))" rx="2"/>
-                  <rect x="70" y="90" width="45" height="3" fill="hsl(var(--primary))" rx="1.5"/>
-                  <rect x="70" y="100" width="50" height="3" fill="hsl(var(--primary))" rx="1.5"/>
-                  <circle cx="150" cy="70" r="25" fill="hsl(var(--primary))" opacity="0.8"/>
-                  <path d="M140 70 L150 77 L160 63" stroke="white" strokeWidth="3" fill="none"/>
+                  <circle cx="100" cy="100" r="80" fill="hsl(var(--muted))" opacity="0.3" />
+                  <rect x="70" y="80" width="60" height="4" fill="hsl(var(--primary))" rx="2" />
+                  <rect x="70" y="90" width="45" height="3" fill="hsl(var(--primary))" rx="1.5" />
+                  <rect x="70" y="100" width="50" height="3" fill="hsl(var(--primary))" rx="1.5" />
+                  <circle cx="150" cy="70" r="25" fill="hsl(var(--primary))" opacity="0.8" />
+                  <path d="M140 70 L150 77 L160 63" stroke="white" strokeWidth="3" fill="none" />
                 </svg>
               </div>
               <h2 className="text-2xl font-bold text-foreground mb-2">No Lists Created</h2>
@@ -293,12 +294,12 @@ export function DashboardDetailView({ onBack }: DashboardDetailViewProps) {
                 </div>
                 <div className="font-medium text-center">Completed</div>
               </div>
-              
+
               {/* Empty state for table */}
               <div className="p-12 text-center">
                 <div className="w-20 h-20 mx-auto mb-4 opacity-60">
                   <svg viewBox="0 0 100 100" className="w-full h-full">
-                    <circle cx="50" cy="50" r="40" fill="hsl(var(--muted))" opacity="0.3"/>
+                    <circle cx="50" cy="50" r="40" fill="hsl(var(--muted))" opacity="0.3" />
                   </svg>
                 </div>
                 <p className="text-muted-foreground">No data available</p>
@@ -372,12 +373,12 @@ export function DashboardDetailView({ onBack }: DashboardDetailViewProps) {
             <div className="flex flex-col items-center justify-center min-h-[400px] text-center bg-card rounded-lg">
               <div className="w-32 h-32 mb-6 opacity-60">
                 <svg viewBox="0 0 200 200" className="w-full h-full">
-                  <circle cx="100" cy="100" r="80" fill="hsl(var(--muted))" opacity="0.3"/>
-                  <rect x="70" y="80" width="60" height="4" fill="hsl(var(--primary))" rx="2"/>
-                  <rect x="70" y="90" width="45" height="3" fill="hsl(var(--primary))" rx="1.5"/>
-                  <rect x="70" y="100" width="50" height="3" fill="hsl(var(--primary))" rx="1.5"/>
-                  <circle cx="150" cy="70" r="25" fill="hsl(var(--primary))" opacity="0.8"/>
-                  <path d="M140 70 L150 77 L160 63" stroke="white" strokeWidth="3" fill="none"/>
+                  <circle cx="100" cy="100" r="80" fill="hsl(var(--muted))" opacity="0.3" />
+                  <rect x="70" y="80" width="60" height="4" fill="hsl(var(--primary))" rx="2" />
+                  <rect x="70" y="90" width="45" height="3" fill="hsl(var(--primary))" rx="1.5" />
+                  <rect x="70" y="100" width="50" height="3" fill="hsl(var(--primary))" rx="1.5" />
+                  <circle cx="150" cy="70" r="25" fill="hsl(var(--primary))" opacity="0.8" />
+                  <path d="M140 70 L150 77 L160 63" stroke="white" strokeWidth="3" fill="none" />
                 </svg>
               </div>
               <h2 className="text-2xl font-bold text-foreground mb-2">No Tasks Here</h2>
@@ -451,12 +452,12 @@ export function DashboardDetailView({ onBack }: DashboardDetailViewProps) {
             <div className="flex flex-col items-center justify-center min-h-[400px] text-center bg-card rounded-lg">
               <div className="w-32 h-32 mb-6 opacity-60">
                 <svg viewBox="0 0 200 200" className="w-full h-full">
-                  <circle cx="100" cy="100" r="80" fill="hsl(var(--muted))" opacity="0.3"/>
-                  <rect x="70" y="80" width="60" height="4" fill="hsl(var(--primary))" rx="2"/>
-                  <rect x="70" y="90" width="45" height="3" fill="hsl(var(--primary))" rx="1.5"/>
-                  <rect x="70" y="100" width="50" height="3" fill="hsl(var(--primary))" rx="1.5"/>
-                  <circle cx="150" cy="70" r="25" fill="hsl(var(--primary))" opacity="0.8"/>
-                  <path d="M140 70 L150 77 L160 63" stroke="white" strokeWidth="3" fill="none"/>
+                  <circle cx="100" cy="100" r="80" fill="hsl(var(--muted))" opacity="0.3" />
+                  <rect x="70" y="80" width="60" height="4" fill="hsl(var(--primary))" rx="2" />
+                  <rect x="70" y="90" width="45" height="3" fill="hsl(var(--primary))" rx="1.5" />
+                  <rect x="70" y="100" width="50" height="3" fill="hsl(var(--primary))" rx="1.5" />
+                  <circle cx="150" cy="70" r="25" fill="hsl(var(--primary))" opacity="0.8" />
+                  <path d="M140 70 L150 77 L160 63" stroke="white" strokeWidth="3" fill="none" />
                 </svg>
               </div>
               <h2 className="text-2xl font-bold text-foreground mb-2">No Tasks Here</h2>
@@ -511,12 +512,12 @@ export function DashboardDetailView({ onBack }: DashboardDetailViewProps) {
             <div className="flex flex-col items-center justify-center min-h-[400px] text-center bg-card rounded-lg">
               <div className="w-32 h-32 mb-6 opacity-60">
                 <svg viewBox="0 0 200 200" className="w-full h-full">
-                  <circle cx="100" cy="100" r="80" fill="hsl(var(--muted))" opacity="0.3"/>
-                  <rect x="70" y="80" width="60" height="4" fill="hsl(var(--primary))" rx="2"/>
-                  <rect x="70" y="90" width="45" height="3" fill="hsl(var(--primary))" rx="1.5"/>
-                  <rect x="70" y="100" width="50" height="3" fill="hsl(var(--primary))" rx="1.5"/>
-                  <circle cx="150" cy="70" r="25" fill="hsl(var(--primary))" opacity="0.8"/>
-                  <path d="M140 70 L150 77 L160 63" stroke="white" strokeWidth="3" fill="none"/>
+                  <circle cx="100" cy="100" r="80" fill="hsl(var(--muted))" opacity="0.3" />
+                  <rect x="70" y="80" width="60" height="4" fill="hsl(var(--primary))" rx="2" />
+                  <rect x="70" y="90" width="45" height="3" fill="hsl(var(--primary))" rx="1.5" />
+                  <rect x="70" y="100" width="50" height="3" fill="hsl(var(--primary))" rx="1.5" />
+                  <circle cx="150" cy="70" r="25" fill="hsl(var(--primary))" opacity="0.8" />
+                  <path d="M140 70 L150 77 L160 63" stroke="white" strokeWidth="3" fill="none" />
                 </svg>
               </div>
               <h2 className="text-2xl font-bold text-foreground mb-2">No Tasks Here</h2>
@@ -598,16 +599,64 @@ export function DashboardDetailView({ onBack }: DashboardDetailViewProps) {
             <div className="flex flex-col items-center justify-center min-h-[400px] text-center bg-card rounded-lg">
               <div className="w-32 h-32 mb-6 opacity-60">
                 <svg viewBox="0 0 200 200" className="w-full h-full">
-                  <circle cx="100" cy="100" r="80" fill="hsl(var(--muted))" opacity="0.3"/>
-                  <rect x="70" y="80" width="60" height="4" fill="hsl(var(--primary))" rx="2"/>
-                  <rect x="70" y="90" width="45" height="3" fill="hsl(var(--primary))" rx="1.5"/>
-                  <rect x="70" y="100" width="50" height="3" fill="hsl(var(--primary))" rx="1.5"/>
-                  <circle cx="150" cy="70" r="25" fill="hsl(var(--primary))" opacity="0.8"/>
-                  <path d="M140 70 L150 77 L160 63" stroke="white" strokeWidth="3" fill="none"/>
+                  <circle cx="100" cy="100" r="80" fill="hsl(var(--muted))" opacity="0.3" />
+                  <rect x="70" y="80" width="60" height="4" fill="hsl(var(--primary))" rx="2" />
+                  <rect x="70" y="90" width="45" height="3" fill="hsl(var(--primary))" rx="1.5" />
+                  <rect x="70" y="100" width="50" height="3" fill="hsl(var(--primary))" rx="1.5" />
+                  <circle cx="150" cy="70" r="25" fill="hsl(var(--primary))" opacity="0.8" />
+                  <path d="M140 70 L150 77 L160 63" stroke="white" strokeWidth="3" fill="none" />
                 </svg>
               </div>
               <h2 className="text-2xl font-bold text-foreground mb-2">No Tasks Here</h2>
               <p className="text-muted-foreground">It seems that you don't have any tasks in this list</p>
+            </div>
+          </div>
+        );
+      case "directory":
+        return (
+          <div className="p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Directory</h1>
+                <p className="text-muted-foreground">Manage your team and contacts</p>
+              </div>
+              <Button className="bg-primary text-primary-foreground">
+                <Plus className="w-4 h-4 mr-2" />
+                Add Member
+              </Button>
+            </div>
+
+            <div className="bg-card border border-border rounded-lg overflow-hidden">
+              <div className="grid grid-cols-4 gap-4 p-4 border-b border-border bg-muted/20 font-medium">
+                <div>Name</div>
+                <div>Role</div>
+                <div>Email</div>
+                <div>Status</div>
+              </div>
+              <div className="divide-y divide-border">
+                {[
+                  { name: "Snehasish", role: "Designer", email: "snehasish@example.com", status: "Active" },
+                  { name: "Team Lead", role: "Manager", email: "lead@example.com", status: "Active" },
+                  { name: "Backend Dev", role: "Developer", email: "backend@example.com", status: "Away" },
+                ].map((member, i) => (
+                  <div key={i} className="grid grid-cols-4 gap-4 p-4 items-center hover:bg-muted/10">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                        {member.name.charAt(0)}
+                      </div>
+                      <span className="font-medium">{member.name}</span>
+                    </div>
+                    <div className="text-muted-foreground">{member.role}</div>
+                    <div className="text-muted-foreground">{member.email}</div>
+                    <div>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${member.status === "Active" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"
+                        }`}>
+                        {member.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         );
@@ -620,7 +669,7 @@ export function DashboardDetailView({ onBack }: DashboardDetailViewProps) {
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
         <DashboardSidebar activeView={activeView} onViewChange={setActiveView} />
-        
+
         <div className="flex-1 flex flex-col">
           {/* Header */}
           <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6">
