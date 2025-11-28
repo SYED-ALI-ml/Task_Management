@@ -80,8 +80,8 @@ export default function Settings() {
                 </CardContent>
             </Card>
 
-            {/* Admin Only: Employee Registration */}
-            {user?.role === "Admin" && (
+            {/* Admin & HR Only: Employee Registration */}
+            {(user?.role === "Admin" || user?.role === "HR") && (
                 <Card>
                     <CardHeader>
                         <CardTitle>Employee Registration</CardTitle>
@@ -113,6 +113,7 @@ export default function Settings() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="Admin">Admin</SelectItem>
+                                        <SelectItem value="HR">HR</SelectItem>
                                         <SelectItem value="Manager">Manager</SelectItem>
                                         <SelectItem value="Developer">Developer</SelectItem>
                                         <SelectItem value="Designer">Designer</SelectItem>

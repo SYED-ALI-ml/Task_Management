@@ -15,6 +15,8 @@ import { useAuth } from "@/context/AuthContext";
 import Settings from "./Settings";
 import { DirectoryView } from "@/components/dashboard/directory-view";
 import { NewTaskSheet } from "@/components/tasks/new-task-sheet";
+import { LeaveManagement } from "./LeaveManagement";
+import { Attendance } from "./Attendance";
 
 const Index = () => {
   const { user } = useAuth();
@@ -99,6 +101,25 @@ const Index = () => {
     };
 
     await db.tasks.add(newTask);
+
+    // Notify Assignee
+    if (newTask.assignee) {
+      const assigneeUser = await db.users.where('name').equals(newTask.assignee).first();
+      if (assigneeUser) {
+        await db.notifications.add({
+          id: `n${Date.now()}`,
+          userId: assigneeUser.id,
+          type: "task",
+          priority: newTask.priority === "urgent" ? "high" : "medium",
+          title: "New Task Assigned",
+          message: `You have been assigned a new task: ${newTask.title}`,
+          link: "/my-tasks",
+          createdAt: new Date().toISOString(),
+          isRead: false,
+          metadata: { taskId: newTask.id }
+        });
+      }
+    }
   };
 
   const handleDeleteTask = async (taskId: string) => {
@@ -214,6 +235,10 @@ const Index = () => {
             )}
           </div>
         );
+      case "leave-management":
+        return <LeaveManagement />;
+      case "attendance":
+        return <Attendance />;
       case "settings":
         return <Settings />;
       default:

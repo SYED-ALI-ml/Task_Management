@@ -7,7 +7,9 @@ import {
   FileText,
   Settings,
   Building2,
-  LogOut
+  LogOut,
+  CalendarDays,
+  Clock
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -18,7 +20,7 @@ interface SidebarProps {
   onTabChange: (tab: string) => void;
 }
 
-const navigationItems = [
+const taskManagementItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "my-tasks", label: "My Tasks", icon: CheckSquare },
   { id: "delegated", label: "Delegated Tasks", icon: Users },
@@ -26,11 +28,47 @@ const navigationItems = [
   { id: "templates", label: "Templates", icon: FileText },
   { id: "directory", label: "Directory", icon: Building2 },
   { id: "deleted", label: "Deleted Tasks", icon: Trash2 },
+];
+
+const hrManagementItems = [
+  { id: "leave-management", label: "Leave Management", icon: CalendarDays },
+  { id: "attendance", label: "Attendance", icon: Clock },
+];
+
+const settingsItems = [
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const { user, logout } = useAuth();
+
+  const renderNavSection = (items: typeof taskManagementItems, title?: string) => (
+    <div className="mb-6">
+      {title && (
+        <h3 className="px-3 mb-2 text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider">
+          {title}
+        </h3>
+      )}
+      <div className="sidebar-nav">
+        {items.map((item) => {
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onTabChange(item.id)}
+              className={cn(
+                "sidebar-nav-item w-full text-left",
+                activeTab === item.id && "active"
+              )}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="font-medium">{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
     <div className="w-72 bg-sidebar border-r border-sidebar-border flex flex-col">
@@ -48,25 +86,10 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4">
-        <div className="sidebar-nav">
-          {navigationItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => onTabChange(item.id)}
-                className={cn(
-                  "sidebar-nav-item w-full text-left",
-                  activeTab === item.id && "active"
-                )}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="font-medium">{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
+      <nav className="flex-1 p-4 overflow-y-auto">
+        {renderNavSection(taskManagementItems, "Task Management")}
+        {renderNavSection(hrManagementItems, "HR Management")}
+        {renderNavSection(settingsItems)}
       </nav>
 
       {/* User Profile */}
