@@ -17,6 +17,8 @@ import { DirectoryView } from "@/components/dashboard/directory-view";
 import { NewTaskSheet } from "@/components/tasks/new-task-sheet";
 import { LeaveManagement } from "./LeaveManagement";
 import { Attendance } from "./Attendance";
+import { IdeaBoard } from "./IdeaBoard";
+import { ProjectManagement } from "./ProjectManagement";
 
 const Index = () => {
   const { user } = useAuth();
@@ -39,11 +41,11 @@ const Index = () => {
   const loading = !allTasks;
 
   // Filter tasks based on role and deleted status
-  const isAdmin = user?.role === "Admin";
+  const isAdmin = user?.role === "Admin" || user?.role === "Manager";
   const activeTasks = allTasks.filter(t => !t.isDeleted);
   const deletedTasks = allTasks.filter(t => t.isDeleted);
 
-  const myTasks = activeTasks.filter(t => t.assignee === user?.name);
+  const myTasks = activeTasks.filter(t => t.assignedTo === user?.id);
 
   // Dashboard tasks: Admin sees all active, Employee sees theirs
   const baseDashboardTasks = isAdmin ? activeTasks : myTasks;
@@ -103,8 +105,8 @@ const Index = () => {
     await db.tasks.add(newTask);
 
     // Notify Assignee
-    if (newTask.assignee) {
-      const assigneeUser = await db.users.where('name').equals(newTask.assignee).first();
+    if (newTask.assignedTo) {
+      const assigneeUser = await db.users.get(newTask.assignedTo);
       if (assigneeUser) {
         await db.notifications.add({
           id: `n${Date.now()}`,
@@ -166,6 +168,8 @@ const Index = () => {
         ) : (
           <EmployeeDashboard tasks={myTasks} onTaskClick={handleTaskClick} />
         );
+      case "projects":
+        return <ProjectManagement />;
       case "my-tasks":
         return (
           <div className="p-8">
@@ -239,6 +243,8 @@ const Index = () => {
         return <LeaveManagement />;
       case "attendance":
         return <Attendance />;
+      case "idea-board":
+        return <IdeaBoard />;
       case "settings":
         return <Settings />;
       default:

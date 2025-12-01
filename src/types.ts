@@ -13,13 +13,39 @@ export interface FollowUp {
     createdAt: string;
 }
 
+// Project and Team Types
+export interface Team {
+    id: string;
+    name: string;
+    projectId?: string; // Optional: A team might work on multiple projects, or be assigned later
+    members: string[]; // Array of user IDs
+    leadId: string; // Team lead user ID
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface Project {
+    id: string;
+    name: string;
+    description: string;
+    createdBy: string; // User ID
+    createdAt: string;
+    updatedAt: string;
+    teams: string[]; // Array of team IDs
+    status: "active" | "on-hold" | "completed" | "archived";
+}
+
 export interface Task {
     id: string;
     title: string;
     description: string;
     status: "pending" | "in-progress" | "completed" | "overdue";
     priority: "low" | "medium" | "high" | "urgent";
-    assignee: string; // Keeping as string for now to match existing, could be User["id"] later
+    projectId: string; // Tasks belong to projects
+    teamId: string; // Tasks belong to teams
+    assignedTo: string; // User ID (single member)
+    assignedToName?: string; // For display purposes
+    createdBy: string; // User ID who created the task
     dueDate: string;
     createdAt: string;
     followUps: FollowUp[];
@@ -87,4 +113,34 @@ export interface Notification {
     createdAt: string;
     isRead: boolean;
     metadata?: any; // Additional data (e.g., leaveId, taskId)
+}
+
+// Idea Board Types
+export type IdeaCategory = "product" | "process" | "marketing" | "technology" | "customer-experience" | "other";
+export type IdeaStatus = "draft" | "submitted" | "under-review" | "approved" | "implemented" | "rejected";
+
+export interface IdeaComment {
+    id: string;
+    ideaId: string;
+    userId: string;
+    userName: string;
+    content: string;
+    createdAt: string;
+}
+
+export interface Idea {
+    id: string;
+    title: string;
+    description: string;
+    category: IdeaCategory;
+    status: IdeaStatus;
+    createdBy: string; // User ID
+    createdByName: string; // User Name
+    createdAt: string;
+    updatedAt: string;
+    sharedWith: string[]; // Array of user IDs
+    isPublic: boolean; // If true, visible to all
+    likes: string[]; // Array of user IDs who liked
+    comments: IdeaComment[];
+    tags?: string[];
 }

@@ -16,12 +16,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Clock, Send, User as UserIcon, CheckCircle, Trash2, Edit2, Save, X } from "lucide-react";
+import { Calendar, Clock, Send, User as UserIcon, CheckCircle, Trash2, Edit2, Save, X, Folder, Users } from "lucide-react";
 import { Task } from "@/types";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/db";
 import { useToast } from "@/components/ui/use-toast";
+import { useLiveQuery } from "dexie-react-hooks";
 
 interface TaskDetailSheetProps {
     task: Task | null;
@@ -41,6 +42,15 @@ export function TaskDetailSheet({ task, isOpen, onClose, onAddFollowUp, onDelete
     const { user } = useAuth();
     const { toast } = useToast();
 
+    // Fetch data for editing
+    const users = useLiveQuery(() => db.users.toArray()) || [];
+    const projects = useLiveQuery(() => db.projects.toArray()) || [];
+    const teams = useLiveQuery(() => db.teams.toArray()) || [];
+
+    // Derived data for display
+    const project = projects.find(p => p.id === task?.projectId);
+    const team = teams.find(t => t.id === task?.teamId);
+
     useEffect(() => {
         if (task) {
             setEditedTask({
@@ -48,7 +58,9 @@ export function TaskDetailSheet({ task, isOpen, onClose, onAddFollowUp, onDelete
                 description: task.description,
                 priority: task.priority,
                 dueDate: task.dueDate,
-                assignee: task.assignee
+                assignedTo: task.assignedTo,
+                projectId: task.projectId,
+                teamId: task.teamId
             });
             setIsEditing(false);
         }
@@ -89,7 +101,14 @@ export function TaskDetailSheet({ task, isOpen, onClose, onAddFollowUp, onDelete
 
     const handleSave = () => {
         if (onUpdate && editedTask) {
-            onUpdate(task.id, editedTask);
+            // If assignedTo changed, update assignedToName
+            let updates = { ...editedTask };
+            if (editedTask.assignedTo && editedTask.assignedTo !== task.assignedTo) {
+                const assignedUser = users.find(u => u.id === editedTask.assignedTo);
+                updates.assignedToName = assignedUser?.name || "Unknown";
+            }
+
+            onUpdate(task.id, updates);
             setIsEditing(false);
             toast({
                 title: "Task Updated",
@@ -98,7 +117,8 @@ export function TaskDetailSheet({ task, isOpen, onClose, onAddFollowUp, onDelete
         }
     };
 
-    const canEdit = user?.role === "Admin" || user?.name === task.assignee;
+    const canEdit = user?.role === "Admin" || user?.role === "Manager" || user?.id === task.assignedTo;
+    const canManage = user?.role === "Admin" || user?.role === "Manager";
 
     return (
         <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -124,27 +144,37 @@ export function TaskDetailSheet({ task, isOpen, onClose, onAddFollowUp, onDelete
                 </SheetHeader>
 
                 <div className="space-y-6 flex-1 overflow-hidden flex flex-col">
+                    {/* Project & Team Info */}
+                    <div className="flex gap-4 text-sm">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <Folder className="w-4 h-4" />
+                            <span>{project?.name || "No Project"}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                            <Users className="w-4 h-4" />
+                            <span>{team?.name || "No Team"}</span>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <UserIcon className="w-4 h-4" />
-                            {isEditing ? (
+                            {isEditing && canManage ? (
                                 <Select
-                                    value={editedTask.assignee}
-                                    onValueChange={(value) => setEditedTask({ ...editedTask, assignee: value })}
+                                    value={editedTask.assignedTo}
+                                    onValueChange={(value) => setEditedTask({ ...editedTask, assignedTo: value })}
                                 >
                                     <SelectTrigger className="h-8">
                                         <SelectValue placeholder="Assignee" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="You">You</SelectItem>
-                                        <SelectItem value="John Doe">John Doe</SelectItem>
-                                        <SelectItem value="Jane Smith">Jane Smith</SelectItem>
-                                        <SelectItem value="Mike Johnson">Mike Johnson</SelectItem>
-                                        <SelectItem value="Sarah Wilson">Sarah Wilson</SelectItem>
+                                        {users.map(u => (
+                                            <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
+                                        ))}
                                     </SelectContent>
                                 </Select>
                             ) : (
-                                <span>Assignee: {task.assignee}</span>
+                                <span>Assignee: {task.assignedToName || "Unassigned"}</span>
                             )}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -217,45 +247,51 @@ export function TaskDetailSheet({ task, isOpen, onClose, onAddFollowUp, onDelete
                         </div>
                     )}
 
-                    {/* Admin Actions */}
-                    {!isEditing && user?.role === "Admin" && (
+                    {/* Actions */}
+                    {!isEditing && (
                         <div className="flex gap-2">
-                            {!task.isDeleted && task.status !== "completed" && (
+                            {/* Completion Action - Available to Assignee and Managers */}
+                            {!task.isDeleted && task.status !== "completed" && (canManage || user?.id === task.assignedTo) && (
                                 <Button className="flex-1 bg-green-600 hover:bg-green-700" onClick={handleMarkCompleted}>
                                     <CheckCircle className="w-4 h-4 mr-2" />
                                     Mark as Completed
                                 </Button>
                             )}
 
-                            {task.isDeleted && (
-                                <Button className="flex-1" variant="outline" onClick={handleRestore}>
-                                    Restore Task
-                                </Button>
-                            )}
+                            {/* Admin/Manager Only Actions */}
+                            {canManage && (
+                                <>
+                                    {task.isDeleted && (
+                                        <Button className="flex-1" variant="outline" onClick={handleRestore}>
+                                            Restore Task
+                                        </Button>
+                                    )}
 
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" className="flex-1">
-                                        <Trash2 className="w-4 h-4 mr-2" />
-                                        {task.isDeleted ? "Delete Permanently" : "Delete Task"}
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            This action cannot be undone. This will permanently delete the task
-                                            "{task.title}" and remove it from our servers.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                            Delete
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                                    <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                            <Button variant="destructive" className="flex-1">
+                                                <Trash2 className="w-4 h-4 mr-2" />
+                                                {task.isDeleted ? "Delete Permanently" : "Delete Task"}
+                                            </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                    This action cannot be undone. This will permanently delete the task
+                                                    "{task.title}" and remove it from our servers.
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                                    Delete
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </AlertDialog>
+                                </>
+                            )}
                         </div>
                     )}
 

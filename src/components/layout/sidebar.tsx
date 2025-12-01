@@ -9,7 +9,8 @@ import {
   Building2,
   LogOut,
   CalendarDays,
-  Clock
+  Clock,
+  Lightbulb
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -22,6 +23,7 @@ interface SidebarProps {
 
 const taskManagementItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "projects", label: "Projects", icon: FolderOpen },
   { id: "my-tasks", label: "My Tasks", icon: CheckSquare },
   { id: "delegated", label: "Delegated Tasks", icon: Users },
   { id: "all-tasks", label: "All Tasks", icon: FolderOpen },
@@ -33,6 +35,10 @@ const taskManagementItems = [
 const hrManagementItems = [
   { id: "leave-management", label: "Leave Management", icon: CalendarDays },
   { id: "attendance", label: "Attendance", icon: Clock },
+];
+
+const innovationItems = [
+  { id: "idea-board", label: "Idea Board", icon: Lightbulb },
 ];
 
 const settingsItems = [
@@ -89,6 +95,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       <nav className="flex-1 p-4 overflow-y-auto">
         {renderNavSection(taskManagementItems, "Task Management")}
         {renderNavSection(hrManagementItems, "HR Management")}
+        {renderNavSection(innovationItems, "Innovation")}
         {renderNavSection(settingsItems)}
       </nav>
 
