@@ -144,3 +144,94 @@ export interface Idea {
     comments: IdeaComment[];
     tags?: string[];
 }
+
+// CRM Types
+export type LeadStatus = "new" | "contacted" | "qualified" | "lost" | "won";
+export type LeadSource = "website" | "referral" | "linkedin" | "cold-call" | "other";
+
+export interface Lead {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    company: string;
+    status: LeadStatus;
+    source: LeadSource;
+    assignedTo: string; // User ID
+    notes?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface Contact {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    companyId?: string;
+    role: string;
+    lastContacted?: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface Company {
+    id: string;
+    name: string;
+    industry: string;
+    website: string;
+    phone: string;
+    address: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface Product {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    sku: string;
+    category: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export type QuotationStatus = "draft" | "sent" | "accepted" | "rejected";
+
+export interface QuotationItem {
+    productId: string;
+    productName: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+}
+
+export interface Quotation {
+    id: string;
+    customerId: string; // Contact ID or Company ID
+    customerName: string;
+    items: QuotationItem[];
+    subtotal: number;
+    tax: number;
+    total: number;
+    status: QuotationStatus;
+    validUntil: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export type ActivityType = "call" | "email" | "meeting" | "note";
+
+export interface Activity {
+    id: string;
+    type: ActivityType;
+    relatedToId: string; // Lead, Contact, or Company ID
+    relatedToType: "lead" | "contact" | "company";
+    description: string;
+    date: string;
+    status: "pending" | "completed";
+    createdAt: string;
+}

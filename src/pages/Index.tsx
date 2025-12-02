@@ -19,6 +19,13 @@ import { LeaveManagement } from "./LeaveManagement";
 import { Attendance } from "./Attendance";
 import { IdeaBoard } from "./IdeaBoard";
 import { ProjectManagement } from "./ProjectManagement";
+import { CRMDashboard } from "@/components/crm/crm-dashboard";
+import { LeadsView } from "@/components/crm/leads-view";
+import { ContactsView } from "@/components/crm/contacts-view";
+import { CompaniesView } from "@/components/crm/companies-view";
+import { ProductsView } from "@/components/crm/products-view";
+import { QuotationsView } from "@/components/crm/quotations-view";
+import { IntegrationsView } from "@/components/crm/integrations-view";
 
 const Index = () => {
   const { user } = useAuth();
@@ -247,6 +254,21 @@ const Index = () => {
         return <IdeaBoard />;
       case "settings":
         return <Settings />;
+      // CRM Routes
+      case "crm-dashboard":
+        return <CRMDashboard />;
+      case "leads":
+        return <LeadsView />;
+      case "contacts":
+        return <ContactsView />;
+      case "companies":
+        return <CompaniesView />;
+      case "products":
+        return <ProductsView />;
+      case "quotations":
+        return <QuotationsView />;
+      case "integrations":
+        return <IntegrationsView />;
       default:
         return null;
     }
