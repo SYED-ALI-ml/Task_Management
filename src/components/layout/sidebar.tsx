@@ -10,7 +10,8 @@ import {
   LogOut,
   CalendarDays,
   Clock,
-  Lightbulb
+  Lightbulb,
+  Link2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -35,6 +36,10 @@ const taskManagementItems = [
 const hrManagementItems = [
   { id: "leave-management", label: "Leave Management", icon: CalendarDays },
   { id: "attendance", label: "Attendance", icon: Clock },
+];
+
+const resourcesItems = [
+  { id: "links", label: "Company Links", icon: Link2 },
 ];
 
 const innovationItems = [
@@ -95,6 +100,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       <nav className="flex-1 p-4 overflow-y-auto">
         {renderNavSection(taskManagementItems, "Task Management")}
         {renderNavSection(hrManagementItems, "HR Management")}
+        {renderNavSection(resourcesItems, "Resources")}
         {renderNavSection(innovationItems, "Innovation")}
         {renderNavSection(settingsItems)}
       </nav>

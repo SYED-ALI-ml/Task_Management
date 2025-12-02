@@ -1,5 +1,5 @@
 import Dexie, { Table } from 'dexie';
-import { Task, User, LeaveRequest, Holiday, AttendanceRecord, Notification, Idea, Project, Team } from './types';
+import { Task, User, LeaveRequest, Holiday, AttendanceRecord, Notification, Idea, Project, Team, CompanyLink, SupportTicket, ActivityLog } from './types';
 
 export class TaskHubDatabase extends Dexie {
     tasks!: Table<Task>;
@@ -11,6 +11,9 @@ export class TaskHubDatabase extends Dexie {
     ideas!: Table<Idea>;
     projects!: Table<Project>;
     teams!: Table<Team>;
+    companyLinks!: Table<CompanyLink>;
+    supportTickets!: Table<SupportTicket>;
+    activityLogs!: Table<ActivityLog>;
 
     constructor() {
         super('TaskHubDatabase');
@@ -60,6 +63,37 @@ export class TaskHubDatabase extends Dexie {
             ideas: 'id, createdBy, category, status, isPublic, createdAt',
             projects: 'id, createdBy, status, createdAt',
             teams: 'id, projectId, leadId, createdAt'
+        });
+
+        // Version 6: Add Company Links and Support Tickets
+        this.version(6).stores({
+            tasks: 'id, status, priority, projectId, teamId, assignedTo, createdBy',
+            users: 'id, email, role',
+            leaves: 'id, employeeId, status, startDate',
+            holidays: 'id, date, type',
+            attendance: 'id, employeeId, date, status',
+            notifications: 'id, userId, isRead, createdAt, type',
+            ideas: 'id, createdBy, category, status, isPublic, createdAt',
+            projects: 'id, createdBy, status, createdAt',
+            teams: 'id, projectId, leadId, createdAt',
+            companyLinks: 'id, category, createdBy, createdAt, accessCount',
+            supportTickets: 'id, createdBy, assignedTo, status, priority, createdAt'
+        });
+
+        // Version 7: Add Activity Logs
+        this.version(7).stores({
+            tasks: 'id, status, priority, projectId, teamId, assignedTo, createdBy',
+            users: 'id, email, role',
+            leaves: 'id, employeeId, status, startDate',
+            holidays: 'id, date, type',
+            attendance: 'id, employeeId, date, status',
+            notifications: 'id, userId, isRead, createdAt, type',
+            ideas: 'id, createdBy, category, status, isPublic, createdAt',
+            projects: 'id, createdBy, status, createdAt',
+            teams: 'id, projectId, leadId, createdAt',
+            companyLinks: 'id, category, createdBy, createdAt, accessCount',
+            supportTickets: 'id, createdBy, assignedTo, status, priority, createdAt',
+            activityLogs: 'id, userId, entityType, entityId, createdAt'
         });
     }
 }
@@ -324,6 +358,90 @@ export const seedDatabase = async () => {
     ];
 
     await db.ideas.bulkAdd(mockIdeas);
+
+    // Seed Company Links
+    const mockLinks: CompanyLink[] = [
+        {
+            id: "link1",
+            title: "Company Handbook",
+            url: "https://docs.example.com/handbook",
+            description: "Complete company policies, procedures, and guidelines for all employees.",
+            category: "Documentation",
+            tags: ["policies", "handbook", "guidelines"],
+            createdBy: "u1",
+            createdByName: "You",
+            createdAt: new Date("2025-01-15").toISOString(),
+            updatedAt: new Date("2025-01-15").toISOString(),
+            accessCount: 45
+        },
+        {
+            id: "link2",
+            title: "Design System",
+            url: "https://design.example.com",
+            description: "UI/UX design system with components, colors, and typography guidelines.",
+            category: "Tools",
+            tags: ["design", "ui", "ux", "components"],
+            createdBy: "u2",
+            createdByName: "Snehasish",
+            createdAt: new Date("2025-02-01").toISOString(),
+            updatedAt: new Date("2025-02-01").toISOString(),
+            accessCount: 32
+        },
+        {
+            id: "link3",
+            title: "Project Templates",
+            url: "https://templates.example.com",
+            description: "Standard templates for project proposals, reports, and documentation.",
+            category: "Templates",
+            tags: ["templates", "documents", "proposals"],
+            createdBy: "u3",
+            createdByName: "Team Lead",
+            createdAt: new Date("2025-02-10").toISOString(),
+            updatedAt: new Date("2025-02-10").toISOString(),
+            accessCount: 28
+        },
+        {
+            id: "link4",
+            title: "Learning Resources",
+            url: "https://learn.example.com",
+            description: "Online courses, tutorials, and training materials for professional development.",
+            category: "Resources",
+            tags: ["learning", "training", "courses"],
+            createdBy: "u1",
+            createdByName: "You",
+            createdAt: new Date("2025-03-01").toISOString(),
+            updatedAt: new Date("2025-03-01").toISOString(),
+            accessCount: 67
+        },
+        {
+            id: "link5",
+            title: "Remote Work Policy",
+            url: "https://docs.example.com/remote-policy",
+            description: "Guidelines and best practices for remote and hybrid work arrangements.",
+            category: "Policies",
+            tags: ["remote", "policy", "wfh"],
+            createdBy: "u1",
+            createdByName: "You",
+            createdAt: new Date("2025-03-15").toISOString(),
+            updatedAt: new Date("2025-03-15").toISOString(),
+            accessCount: 54
+        },
+        {
+            id: "link6",
+            title: "GitHub Repository",
+            url: "https://github.com/yourcompany/main-project",
+            description: "Main codebase repository for the company's primary product.",
+            category: "External",
+            tags: ["github", "code", "repository"],
+            createdBy: "u4",
+            createdByName: "Backend Dev",
+            createdAt: new Date("2025-04-01").toISOString(),
+            updatedAt: new Date("2025-04-01").toISOString(),
+            accessCount: 89
+        }
+    ];
+
+    await db.companyLinks.bulkAdd(mockLinks);
 };
 
 // Helper function to create notifications

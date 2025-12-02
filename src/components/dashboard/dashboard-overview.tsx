@@ -1,11 +1,15 @@
 import { Task } from "@/types";
-import { TaskStats } from "@/components/tasks/task-stats";
 import { TaskList } from "@/components/tasks/task-list";
+import { ActivityLogView } from "@/components/dashboard/activity-log";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Filter } from "lucide-react";
+import { Plus, Search, Filter, Users, TrendingUp, Clock, FolderOpen } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "@/db";
 
 interface DashboardOverviewProps {
   onNavigate: (tab: string) => void;
@@ -34,18 +38,69 @@ export const DashboardOverview = ({
   priorityFilter,
   onPriorityFilterChange
 }: DashboardOverviewProps) => {
-  // Compute stats (these are still needed if TaskStats is used, but the provided snippet removes TaskStats from the render)
+  // Fetch additional data
+  const users = useLiveQuery(() => db.users.toArray()) || [];
+  const projects = useLiveQuery(() => db.projects.toArray()) || [];
+  const teams = useLiveQuery(() => db.teams.toArray()) || [];
+
+  // Compute basic stats
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((t) => t.status === "completed").length;
   const pendingTasks = tasks.filter((t) => t.status === "pending").length;
+  const inProgressTasks = tasks.filter((t) => t.status === "in-progress").length;
   const overdueTasks = tasks.filter((t) => t.status === "overdue").length;
+
+  // Calculate completion percentage
+  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+  // Team member workload analysis
+  const memberWorkload = users.map(user => {
+    const userTasks = tasks.filter(t => t.assignedTo === user.id);
+    const userCompleted = userTasks.filter(t => t.status === "completed").length;
+    const userActive = userTasks.filter(t => t.status !== "completed" && !t.isDeleted).length;
+
+    return {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+      totalTasks: userTasks.length,
+      activeTasks: userActive,
+      completedTasks: userCompleted,
+      completionRate: userTasks.length > 0 ? Math.round((userCompleted / userTasks.length) * 100) : 0
+    };
+  }).filter(m => m.totalTasks > 0)
+    .sort((a, b) => b.activeTasks - a.activeTasks)
+    .slice(0, 5);
+
+  // Project progress analysis
+  const activeProjects = projects.filter(p => p.status === "active");
+  const projectProgress = activeProjects.map(project => {
+    const projectTasks = tasks.filter(t => t.projectId === project.id);
+    const projectCompleted = projectTasks.filter(t => t.status === "completed").length;
+    const progress = projectTasks.length > 0 ? Math.round((projectCompleted / projectTasks.length) * 100) : 0;
+
+    return {
+      id: project.id,
+      name: project.name,
+      totalTasks: projectTasks.length,
+      completedTasks: projectCompleted,
+      remainingTasks: projectTasks.length - projectCompleted,
+      progress,
+      teams: project.teams?.length || 0
+    };
+  }).sort((a, b) => b.totalTasks - a.totalTasks)
+    .slice(0, 4);
+
+  // Work distribution by priority
+  const urgentTasks = tasks.filter(t => t.priority === "urgent" && t.status !== "completed").length;
+  const highPriorityTasks = tasks.filter(t => t.priority === "high" && t.status !== "completed").length;
 
   return (
     <div className="p-8 space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back to your task hub</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Complete overview of team performance and project progress</p>
         </div>
         <Button onClick={onNewTask} className="bg-primary hover:bg-primary/90">
           <Plus className="w-4 h-4 mr-2" />
@@ -53,6 +108,7 @@ export const DashboardOverview = ({
         </Button>
       </div>
 
+      {/* Search and Filters */}
       <div className="flex gap-4 items-center">
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -96,67 +152,182 @@ export const DashboardOverview = ({
         </Select>
       </div>
 
-      {/* The original TaskStats component was removed in the provided snippet,
-          but the stats computation is kept in case it's intended to be re-added
-          or used elsewhere. */}
+      {/* Key Metrics */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
-            <Plus className="h-4 w-4 text-muted-foreground" />
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalTasks}</div>
-            <p className="text-xs text-muted-foreground">All tasks</p>
+            <p className="text-xs text-muted-foreground">
+              {completionRate}% completion rate
+            </p>
+            <Progress value={completionRate} className="mt-2 h-1" />
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed Tasks</CardTitle>
-            <Plus className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
+            <Clock className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{completedTasks}</div>
-            <p className="text-xs text-muted-foreground">Tasks finished</p>
+            <div className="text-2xl font-bold">{inProgressTasks}</div>
+            <p className="text-xs text-muted-foreground">Active work items</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Tasks</CardTitle>
-            <Plus className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pendingTasks}</div>
-            <p className="text-xs text-muted-foreground">Tasks awaiting completion</p>
+            <p className="text-xs text-muted-foreground">
+              {urgentTasks + highPriorityTasks} high priority
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Overdue Tasks</CardTitle>
-            <Plus className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
+            <Clock className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{overdueTasks}</div>
-            <p className="text-xs text-muted-foreground">Tasks past due date</p>
+            <div className="text-2xl font-bold text-red-500">{overdueTasks}</div>
+            <p className="text-xs text-muted-foreground">Needs attention</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="mt-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-foreground">Recent Tasks</h2>
-          <Button variant="link" onClick={() => onNavigate("all-tasks")}>
-            View All
-          </Button>
+      {/* Team Workload & Project Progress */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Team Member Workload */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Team Workload
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => onNavigate("directory")}>
+                View All
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {memberWorkload.length > 0 ? (
+                memberWorkload.map((member) => (
+                  <div key={member.id} className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
+                          {member.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="font-medium">{member.name}</p>
+                          <p className="text-xs text-muted-foreground">{member.role}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">{member.activeTasks}</p>
+                        <p className="text-xs text-muted-foreground">active</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Progress value={member.completionRate} className="h-1.5 flex-1" />
+                      <span className="text-xs text-muted-foreground w-10 text-right">
+                        {member.completionRate}%
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">No active tasks assigned</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Ongoing Projects */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <FolderOpen className="w-5 h-5" />
+                Ongoing Projects
+              </CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => onNavigate("projects")}>
+                View All
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {projectProgress.length > 0 ? (
+                projectProgress.map((project) => (
+                  <div key={project.id} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{project.name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="secondary" className="text-xs">
+                            {project.teams} teams
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {project.remainingTasks} remaining
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium">{project.completedTasks}/{project.totalTasks}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Progress value={project.progress} className="h-1.5 flex-1" />
+                      <span className="text-xs text-muted-foreground w-10 text-right">
+                        {project.progress}%
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">No active projects</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Tasks & Activity Log */}
+      <div className="grid gap-6 md:grid-cols-2 mt-8">
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-foreground">Recent Tasks</h2>
+            <Button variant="link" onClick={() => onNavigate("all-tasks")}>
+              View All
+            </Button>
+          </div>
+
+          {loading ? (
+            <div className="p-12 text-center border rounded-lg bg-card">
+              <p className="text-muted-foreground">Loading tasks...</p>
+            </div>
+          ) : (
+            <TaskList tasks={tasks.slice(0, 5)} onTaskClick={onTaskClick} />
+          )}
         </div>
 
-        {loading ? (
-          <div className="p-12 text-center border rounded-lg bg-card">
-            <p className="text-muted-foreground">Loading tasks...</p>
-          </div>
-        ) : (
-          <TaskList tasks={tasks.slice(0, 5)} onTaskClick={onTaskClick} />
-        )}
+        <Card>
+          <CardHeader>
+            <CardTitle>Activity Log</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ActivityLogView />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { db } from "@/db";
 import { User } from "@/types";
@@ -9,16 +9,56 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { useLiveQuery } from "dexie-react-hooks";
+import { Save, Edit2, X } from "lucide-react";
 
 export default function Settings() {
     const { user } = useAuth();
     const { toast } = useToast();
     const users = useLiveQuery(() => db.users.toArray()) || [];
 
+    // Profile State
+    const [isEditingProfile, setIsEditingProfile] = useState(false);
+    const [profileName, setProfileName] = useState("");
+    const [profileEmail, setProfileEmail] = useState("");
+
     // New Employee State
     const [newEmployeeName, setNewEmployeeName] = useState("");
     const [newEmployeeEmail, setNewEmployeeEmail] = useState("");
     const [newEmployeeRole, setNewEmployeeRole] = useState("Employee");
+
+    useEffect(() => {
+        if (user) {
+            setProfileName(user.name);
+            setProfileEmail(user.email);
+        }
+    }, [user]);
+
+    const handleUpdateProfile = async () => {
+        if (!user || !profileName || !profileEmail) return;
+
+        await db.users.update(user.id, {
+            name: profileName,
+            email: profileEmail
+        });
+
+        // Log activity
+        await db.activityLogs.add({
+            id: `log${Date.now()}`,
+            userId: user.id,
+            userName: profileName, // Use new name
+            action: "updated profile",
+            entityType: "user",
+            entityId: user.id,
+            entityName: profileName,
+            createdAt: new Date().toISOString()
+        });
+
+        setIsEditingProfile(false);
+        toast({
+            title: "Success",
+            description: "Profile updated successfully",
+        });
+    };
 
     const handleAddEmployee = async () => {
         if (!newEmployeeName || !newEmployeeEmail) {
@@ -39,6 +79,20 @@ export default function Settings() {
 
         await db.users.add(newUser);
 
+        // Log activity
+        if (user) {
+            await db.activityLogs.add({
+                id: `log${Date.now()}`,
+                userId: user.id,
+                userName: user.name,
+                action: "added employee",
+                entityType: "user",
+                entityId: newUser.id,
+                entityName: newUser.name,
+                createdAt: new Date().toISOString()
+            });
+        }
+
         toast({
             title: "Success",
             description: "Employee added successfully",
@@ -58,25 +112,59 @@ export default function Settings() {
 
             {/* Profile Section */}
             <Card>
-                <CardHeader>
-                    <CardTitle>My Profile</CardTitle>
-                    <CardDescription>Your account details</CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle>My Profile</CardTitle>
+                        <CardDescription>Your account details</CardDescription>
+                    </div>
+                    {!isEditingProfile && (
+                        <Button variant="outline" size="sm" onClick={() => setIsEditingProfile(true)}>
+                            <Edit2 className="w-4 h-4 mr-2" />
+                            Edit Profile
+                        </Button>
+                    )}
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label>Name</Label>
-                            <Input value={user?.name} disabled />
+                            <Input
+                                value={isEditingProfile ? profileName : user?.name}
+                                onChange={(e) => setProfileName(e.target.value)}
+                                disabled={!isEditingProfile}
+                            />
                         </div>
                         <div className="space-y-2">
                             <Label>Email</Label>
-                            <Input value={user?.email} disabled />
+                            <Input
+                                value={isEditingProfile ? profileEmail : user?.email}
+                                onChange={(e) => setProfileEmail(e.target.value)}
+                                disabled={!isEditingProfile}
+                            />
                         </div>
                         <div className="space-y-2">
                             <Label>Role</Label>
-                            <Input value={user?.role} disabled />
+                            <Input value={user?.role} disabled className="bg-muted" />
                         </div>
                     </div>
+                    {isEditingProfile && (
+                        <div className="flex gap-2 justify-end mt-4">
+                            <Button variant="outline" onClick={() => {
+                                setIsEditingProfile(false);
+                                if (user) {
+                                    setProfileName(user.name);
+                                    setProfileEmail(user.email);
+                                }
+                            }}>
+                                <X className="w-4 h-4 mr-2" />
+                                Cancel
+                            </Button>
+                            <Button onClick={handleUpdateProfile}>
+                                <Save className="w-4 h-4 mr-2" />
+                                Save Changes
+                            </Button>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 

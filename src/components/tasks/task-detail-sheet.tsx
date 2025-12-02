@@ -68,14 +68,45 @@ export function TaskDetailSheet({ task, isOpen, onClose, onAddFollowUp, onDelete
 
     if (!task) return null;
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!comment.trim()) return;
         onAddFollowUp(task.id, comment);
+
+        // Log activity
+        if (user) {
+            await db.activityLogs.add({
+                id: `log${Date.now()}`,
+                userId: user.id,
+                userName: user.name,
+                action: "commented on",
+                entityType: "task",
+                entityId: task.id,
+                entityName: task.title,
+                details: comment.substring(0, 50) + (comment.length > 50 ? "..." : ""),
+                createdAt: new Date().toISOString()
+            });
+        }
+
         setComment("");
     };
 
     const handleMarkCompleted = async () => {
         await db.tasks.update(task.id, { status: "completed" });
+
+        // Log activity
+        if (user) {
+            await db.activityLogs.add({
+                id: `log${Date.now()}`,
+                userId: user.id,
+                userName: user.name,
+                action: "completed task",
+                entityType: "task",
+                entityId: task.id,
+                entityName: task.title,
+                createdAt: new Date().toISOString()
+            });
+        }
+
         toast({
             title: "Task Completed",
             description: "Task has been marked as completed.",
@@ -83,18 +114,48 @@ export function TaskDetailSheet({ task, isOpen, onClose, onAddFollowUp, onDelete
         onClose();
     };
 
-    const handleDelete = () => {
+    const handleDelete = async () => {
         if (task.isDeleted && onPermanentDelete) {
             onPermanentDelete(task.id);
         } else {
             onDelete(task.id);
         }
+
+        // Log activity
+        if (user) {
+            await db.activityLogs.add({
+                id: `log${Date.now()}`,
+                userId: user.id,
+                userName: user.name,
+                action: task.isDeleted ? "permanently deleted task" : "deleted task",
+                entityType: "task",
+                entityId: task.id,
+                entityName: task.title,
+                createdAt: new Date().toISOString()
+            });
+        }
+
         onClose();
     };
 
-    const handleRestore = () => {
+    const handleRestore = async () => {
         if (onRestore) {
             onRestore(task.id);
+
+            // Log activity
+            if (user) {
+                await db.activityLogs.add({
+                    id: `log${Date.now()}`,
+                    userId: user.id,
+                    userName: user.name,
+                    action: "restored task",
+                    entityType: "task",
+                    entityId: task.id,
+                    entityName: task.title,
+                    createdAt: new Date().toISOString()
+                });
+            }
+
             onClose();
         }
     };
@@ -142,6 +203,15 @@ export function TaskDetailSheet({ task, isOpen, onClose, onAddFollowUp, onDelete
                         </Badge>
                     </div>
                 </SheetHeader>
+
+                {/* Read-Only Indicator */}
+                {!canEdit && (
+                    <div className="px-4 py-2 bg-muted/50 border-l-4 border-muted-foreground/30 rounded-sm">
+                        <p className="text-sm text-muted-foreground">
+                            <span className="font-medium">Read-Only:</span> You can view this task but cannot make edits.
+                        </p>
+                    </div>
+                )}
 
                 <div className="space-y-6 flex-1 overflow-hidden flex flex-col">
                     {/* Project & Team Info */}

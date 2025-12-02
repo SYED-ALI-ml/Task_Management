@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, FolderOpen, Users2, Calendar, TrendingUp, ListTodo, UserPlus, Settings } from "lucide-react";
+import { Plus, FolderOpen, Users2, Calendar, TrendingUp, ListTodo, UserPlus, Settings, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { TaskList } from "@/components/tasks/task-list";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -141,6 +141,67 @@ export function ProjectManagement() {
         setIsAssignTeamOpen(true);
     };
 
+    const handleDeleteProject = async (project: Project) => {
+        if (!window.confirm(`Are you sure you want to delete project "${project.name}"? This will also delete all associated tasks.`)) return;
+
+        // Soft delete all tasks associated with this project
+        const projectTasks = await db.tasks.where("projectId").equals(project.id).toArray();
+        await db.tasks.bulkPut(projectTasks.map(t => ({ ...t, isDeleted: true })));
+
+        // Delete the project
+        await db.projects.delete(project.id);
+
+        // Log activity
+        if (user) {
+            await db.activityLogs.add({
+                id: `log${Date.now()}`,
+                userId: user.id,
+                userName: user.name,
+                action: "deleted project",
+                entityType: "project",
+                entityId: project.id,
+                entityName: project.name,
+                createdAt: new Date().toISOString()
+            });
+        }
+
+        toast({ title: "Success", description: "Project and associated tasks deleted." });
+    };
+
+    const handleDeleteTeam = async (team: Team) => {
+        if (!window.confirm(`Are you sure you want to delete team "${team.name}"?`)) return;
+
+        // Remove team from all projects
+        const projectsWithTeam = allProjects.filter(p => p.teams?.includes(team.id));
+        for (const project of projectsWithTeam) {
+            const updatedTeams = project.teams.filter(tId => tId !== team.id);
+            await db.projects.update(project.id, { teams: updatedTeams });
+        }
+
+        // Unassign tasks assigned to this team
+        const teamTasks = await db.tasks.where("teamId").equals(team.id).toArray();
+        await db.tasks.bulkPut(teamTasks.map(t => ({ ...t, teamId: "", assignedTo: "" }))); // Unassign user too as they are part of the team
+
+        // Delete the team
+        await db.teams.delete(team.id);
+
+        // Log activity
+        if (user) {
+            await db.activityLogs.add({
+                id: `log${Date.now()}`,
+                userId: user.id,
+                userName: user.name,
+                action: "deleted team",
+                entityType: "team",
+                entityId: team.id,
+                entityName: team.name,
+                createdAt: new Date().toISOString()
+            });
+        }
+
+        toast({ title: "Success", description: "Team deleted and removed from projects." });
+    };
+
     // --- Helpers ---
 
     const getProjectStats = (projectId: string) => {
@@ -242,10 +303,15 @@ export function ProjectManagement() {
                                                 View Tasks
                                             </Button>
                                             {canManage && (
-                                                <Button variant="outline" size="sm" onClick={() => openAssignTeam(project)}>
-                                                    <UserPlus className="w-4 h-4 mr-2" />
-                                                    Assign Team
-                                                </Button>
+                                                <div className="flex gap-2">
+                                                    <Button variant="outline" size="sm" onClick={() => openAssignTeam(project)}>
+                                                        <UserPlus className="w-4 h-4 mr-2" />
+                                                        Assign Team
+                                                    </Button>
+                                                    <Button variant="destructive" size="icon" className="h-8 w-8" onClick={() => handleDeleteProject(project)}>
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
                                             )}
                                         </div>
                                     </CardContent>
@@ -294,10 +360,15 @@ export function ProjectManagement() {
                                             </div>
 
                                             {canManage && (
-                                                <Button variant="outline" size="sm" className="w-full" onClick={() => openManageMembers(team)}>
-                                                    <Settings className="w-4 h-4 mr-2" />
-                                                    Manage Members
-                                                </Button>
+                                                <div className="flex gap-2">
+                                                    <Button variant="outline" size="sm" className="flex-1" onClick={() => openManageMembers(team)}>
+                                                        <Settings className="w-4 h-4 mr-2" />
+                                                        Manage Members
+                                                    </Button>
+                                                    <Button variant="destructive" size="icon" className="h-9 w-9" onClick={() => handleDeleteTeam(team)}>
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
                                             )}
                                         </div>
                                     </CardContent>

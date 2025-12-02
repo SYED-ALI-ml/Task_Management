@@ -128,6 +128,7 @@ export interface IdeaComment {
     createdAt: string;
 }
 
+
 export interface Idea {
     id: string;
     title: string;
@@ -143,4 +144,66 @@ export interface Idea {
     likes: string[]; // Array of user IDs who liked
     comments: IdeaComment[];
     tags?: string[];
+}
+
+// Links Management Types
+export type LinkCategory = "Documentation" | "Tools" | "Resources" | "Templates" | "Policies" | "External" | "Other";
+
+export interface CompanyLink {
+    id: string;
+    title: string;
+    url: string;
+    description: string;
+    category: LinkCategory;
+    tags: string[];
+    createdBy: string;
+    createdByName: string;
+    createdAt: string;
+    updatedAt: string;
+    accessCount: number; // Track how many times link was clicked
+    isFavorite?: boolean; // For user-specific favorites
+}
+
+// Support/Help Types
+export type SupportPriority = "low" | "medium" | "high" | "urgent";
+export type SupportStatus = "open" | "in-progress" | "resolved" | "closed";
+
+export interface SupportTicket {
+    id: string;
+    title: string;
+    description: string;
+    category: string;
+    priority: SupportPriority;
+    status: SupportStatus;
+    createdBy: string;
+    createdByName: string;
+    assignedTo?: string;
+    assignedToName?: string;
+    createdAt: string;
+    updatedAt: string;
+    resolvedAt?: string;
+    responses: SupportResponse[];
+}
+
+export interface SupportResponse {
+    id: string;
+    ticketId: string;
+    message: string;
+    createdBy: string;
+    createdByName: string;
+    createdAt: string;
+    isAdminResponse: boolean;
+}
+
+
+export interface ActivityLog {
+    id: string;
+    userId: string;
+    userName: string;
+    action: string; // e.g., "created task", "deleted project"
+    entityType: "task" | "project" | "team" | "user" | "idea" | "link" | "support";
+    entityId: string;
+    entityName: string;
+    details?: string;
+    createdAt: string;
 }

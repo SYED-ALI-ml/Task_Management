@@ -19,6 +19,8 @@ import { LeaveManagement } from "./LeaveManagement";
 import { Attendance } from "./Attendance";
 import { IdeaBoard } from "./IdeaBoard";
 import { ProjectManagement } from "./ProjectManagement";
+import { LinksManagement } from "./LinksManagement";
+import { HelpWidget } from "@/components/support/help-widget";
 
 const Index = () => {
   const { user } = useAuth();
@@ -103,6 +105,20 @@ const Index = () => {
     };
 
     await db.tasks.add(newTask);
+
+    // Log activity
+    if (user) {
+      await db.activityLogs.add({
+        id: `log${Date.now()}`,
+        userId: user.id,
+        userName: user.name,
+        action: "created task",
+        entityType: "task",
+        entityId: newTask.id,
+        entityName: newTask.title,
+        createdAt: new Date().toISOString()
+      });
+    }
 
     // Notify Assignee
     if (newTask.assignedTo) {
@@ -196,12 +212,14 @@ const Index = () => {
           </div>
         );
       case "all-tasks":
-        // Only Admin should see "All Tasks" ideally, but keeping it accessible for now
+        // All users can view all tasks, but can only edit tasks assigned to them
         return (
           <div className="p-8">
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-foreground mb-2">All Tasks</h1>
-              <p className="text-muted-foreground">Complete overview of all tasks in the system</p>
+              <p className="text-muted-foreground">
+                Complete overview of all tasks in the system {!isAdmin && "(Read-only for tasks not assigned to you)"}
+              </p>
             </div>
             <TaskStats totalTasks={totalTasks} completedTasks={completedTasks} pendingTasks={pendingTasks} overdueTasks={overdueTasks} />
             {loading ? (
@@ -245,6 +263,8 @@ const Index = () => {
         return <Attendance />;
       case "idea-board":
         return <IdeaBoard />;
+      case "links":
+        return <LinksManagement />;
       case "settings":
         return <Settings />;
       default:
@@ -282,6 +302,8 @@ const Index = () => {
         onClose={() => setIsNewTaskSheetOpen(false)}
         onCreate={handleCreateTask}
       />
+
+      <HelpWidget />
     </div>
   );
 };
