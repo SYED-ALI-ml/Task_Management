@@ -46,6 +46,16 @@ const innovationItems = [
   { id: "idea-board", label: "Idea Board", icon: Lightbulb },
 ];
 
+const crmItems = [
+  { id: "crm-dashboard", label: "CRM Dashboard", icon: LayoutDashboard },
+  { id: "leads", label: "Leads", icon: Users },
+  { id: "contacts", label: "Contacts", icon: Users },
+  { id: "companies", label: "Companies", icon: Building2 },
+  { id: "products", label: "Products", icon: CheckSquare },
+  { id: "quotations", label: "Quotations", icon: FileText },
+  { id: "integrations", label: "Integrations", icon: Settings },
+];
+
 const settingsItems = [
   { id: "settings", label: "Settings", icon: Settings },
 ];
@@ -99,6 +109,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 p-4 overflow-y-auto">
         {renderNavSection(taskManagementItems, "Task Management")}
+        {renderNavSection(crmItems, "Revenue & CRM")}
         {renderNavSection(hrManagementItems, "HR Management")}
         {renderNavSection(resourcesItems, "Resources")}
         {renderNavSection(innovationItems, "Innovation")}

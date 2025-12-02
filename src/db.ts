@@ -1,4 +1,5 @@
 import Dexie, { Table } from 'dexie';
+import { Task, User, LeaveRequest, Holiday, AttendanceRecord, Notification, Idea, Project, Team, Lead, Contact, Company, Product, Quotation, Activity } from './types';
 import { Task, User, LeaveRequest, Holiday, AttendanceRecord, Notification, Idea, Project, Team, CompanyLink, SupportTicket, ActivityLog } from './types';
 
 export class TaskHubDatabase extends Dexie {
@@ -11,6 +12,12 @@ export class TaskHubDatabase extends Dexie {
     ideas!: Table<Idea>;
     projects!: Table<Project>;
     teams!: Table<Team>;
+    leads!: Table<Lead>;
+    contacts!: Table<Contact>;
+    companies!: Table<Company>;
+    products!: Table<Product>;
+    quotations!: Table<Quotation>;
+    activities!: Table<Activity>;
     companyLinks!: Table<CompanyLink>;
     supportTickets!: Table<SupportTicket>;
     activityLogs!: Table<ActivityLog>;
@@ -63,6 +70,25 @@ export class TaskHubDatabase extends Dexie {
             ideas: 'id, createdBy, category, status, isPublic, createdAt',
             projects: 'id, createdBy, status, createdAt',
             teams: 'id, projectId, leadId, createdAt'
+        });
+
+        // Version 6: Add CRM tables
+        this.version(6).stores({
+            tasks: 'id, status, priority, projectId, teamId, assignedTo, createdBy',
+            users: 'id, email, role',
+            leaves: 'id, employeeId, status, startDate',
+            holidays: 'id, date, type',
+            attendance: 'id, employeeId, date, status',
+            notifications: 'id, userId, isRead, createdAt, type',
+            ideas: 'id, createdBy, category, status, isPublic, createdAt',
+            projects: 'id, createdBy, status, createdAt',
+            teams: 'id, projectId, leadId, createdAt',
+            leads: 'id, status, assignedTo, createdAt',
+            contacts: 'id, companyId, email',
+            companies: 'id, name, industry',
+            products: 'id, category, sku',
+            quotations: 'id, customerId, status, createdAt',
+            activities: 'id, relatedToId, type, date'
         });
 
         // Version 6: Add Company Links and Support Tickets
@@ -359,6 +385,115 @@ export const seedDatabase = async () => {
 
     await db.ideas.bulkAdd(mockIdeas);
 
+    // Seed CRM Data
+    const mockCompanies: Company[] = [
+        {
+            id: "c1",
+            name: "TechCorp Inc.",
+            industry: "Technology",
+            website: "https://techcorp.com",
+            phone: "+1 555-0123",
+            address: "123 Tech Park, Silicon Valley, CA",
+            createdAt: new Date("2024-11-01").toISOString(),
+            updatedAt: new Date("2024-11-01").toISOString()
+        },
+        {
+            id: "c2",
+            name: "Global Solutions",
+            industry: "Consulting",
+            website: "https://globalsolutions.com",
+            phone: "+1 555-0456",
+            address: "456 Business Ave, New York, NY",
+            createdAt: new Date("2024-11-05").toISOString(),
+            updatedAt: new Date("2024-11-05").toISOString()
+        }
+    ];
+
+    await db.companies.bulkAdd(mockCompanies);
+
+    const mockContacts: Contact[] = [
+        {
+            id: "ct1",
+            firstName: "John",
+            lastName: "Doe",
+            email: "john.doe@techcorp.com",
+            phone: "+1 555-1111",
+            companyId: "c1",
+            role: "CTO",
+            createdAt: new Date("2024-11-02").toISOString(),
+            updatedAt: new Date("2024-11-02").toISOString()
+        },
+        {
+            id: "ct2",
+            firstName: "Jane",
+            lastName: "Smith",
+            email: "jane.smith@globalsolutions.com",
+            phone: "+1 555-2222",
+            companyId: "c2",
+            role: "CEO",
+            createdAt: new Date("2024-11-06").toISOString(),
+            updatedAt: new Date("2024-11-06").toISOString()
+        }
+    ];
+
+    await db.contacts.bulkAdd(mockContacts);
+
+    const mockLeads: Lead[] = [
+        {
+            id: "l1",
+            firstName: "Alice",
+            lastName: "Johnson",
+            email: "alice.j@startup.com",
+            phone: "+1 555-3333",
+            company: "Startup Hub",
+            status: "new",
+            source: "website",
+            assignedTo: "u1",
+            createdAt: new Date("2024-11-28").toISOString(),
+            updatedAt: new Date("2024-11-28").toISOString()
+        },
+        {
+            id: "l2",
+            firstName: "Bob",
+            lastName: "Williams",
+            email: "bob.w@enterprise.com",
+            phone: "+1 555-4444",
+            company: "Enterprise Ltd",
+            status: "contacted",
+            source: "linkedin",
+            assignedTo: "u2",
+            createdAt: new Date("2024-11-29").toISOString(),
+            updatedAt: new Date("2024-11-29").toISOString()
+        }
+    ];
+
+    await db.leads.bulkAdd(mockLeads);
+
+    const mockProducts: Product[] = [
+        {
+            id: "p1",
+            name: "CRM License (Pro)",
+            description: "Professional tier license for CRM software",
+            price: 49.99,
+            sku: "CRM-PRO-001",
+            category: "Software",
+            createdAt: new Date("2024-10-01").toISOString(),
+            updatedAt: new Date("2024-10-01").toISOString()
+        },
+        {
+            id: "p2",
+            name: "Implementation Service",
+            description: "On-site implementation and training",
+            price: 1500.00,
+            sku: "SVC-IMP-001",
+            category: "Service",
+            createdAt: new Date("2024-10-01").toISOString(),
+            updatedAt: new Date("2024-10-01").toISOString()
+        }
+    ];
+
+    await db.products.bulkAdd(mockProducts);
+
     // Seed Company Links
     const mockLinks: CompanyLink[] = [
         {
@@ -456,3 +591,4 @@ export const createNotification = async (notification: Omit<Notification, 'id' |
     await db.notifications.add(newNotification);
     return newNotification;
 };
+

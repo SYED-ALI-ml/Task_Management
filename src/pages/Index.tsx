@@ -267,6 +267,21 @@ const Index = () => {
         return <LinksManagement />;
       case "settings":
         return <Settings />;
+      // CRM Routes
+      case "crm-dashboard":
+        return <CRMDashboard />;
+      case "leads":
+        return <LeadsView />;
+      case "contacts":
+        return <ContactsView />;
+      case "companies":
+        return <CompaniesView />;
+      case "products":
+        return <ProductsView />;
+      case "quotations":
+        return <QuotationsView />;
+      case "integrations":
+        return <IntegrationsView />;
       default:
         return null;
     }
