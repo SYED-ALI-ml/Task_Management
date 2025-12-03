@@ -1,6 +1,5 @@
 import Dexie, { Table } from 'dexie';
-import { Task, User, LeaveRequest, Holiday, AttendanceRecord, Notification, Idea, Project, Team, Lead, Contact, Company, Product, Quotation, Activity } from './types';
-import { Task, User, LeaveRequest, Holiday, AttendanceRecord, Notification, Idea, Project, Team, CompanyLink, SupportTicket, ActivityLog } from './types';
+import { Task, User, LeaveRequest, Holiday, AttendanceRecord, Notification, Idea, Project, Team, Lead, Contact, Company, Product, Quotation, Activity, CompanyLink, SupportTicket, ActivityLog } from './types';
 
 export class TaskHubDatabase extends Dexie {
     tasks!: Table<Task>;

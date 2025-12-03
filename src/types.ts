@@ -207,3 +207,75 @@ export interface ActivityLog {
     details?: string;
     createdAt: string;
 }
+
+// CRM Types
+export interface Lead {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    company: string;
+    status: "new" | "contacted" | "qualified" | "proposal" | "negotiation" | "won" | "lost";
+    source: string;
+    assignedTo: string; // User ID
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface Contact {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    companyId: string;
+    role: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface Company {
+    id: string;
+    name: string;
+    industry: string;
+    website: string;
+    phone: string;
+    address: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface Product {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    sku: string;
+    category: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface Quotation {
+    id: string;
+    customerId: string; // Contact ID or Company ID
+    items: { productId: string; quantity: number; price: number }[];
+    totalAmount: number;
+    status: "draft" | "sent" | "accepted" | "rejected";
+    validUntil: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface Activity {
+    id: string;
+    relatedToId: string; // Lead, Contact, Company, or Deal ID
+    type: "call" | "email" | "meeting" | "note" | "task";
+    subject: string;
+    description: string;
+    date: string;
+    duration?: number; // in minutes
+    createdBy: string;
+    createdAt: string;
+}

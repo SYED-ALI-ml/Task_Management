@@ -21,6 +21,13 @@ import { IdeaBoard } from "./IdeaBoard";
 import { ProjectManagement } from "./ProjectManagement";
 import { LinksManagement } from "./LinksManagement";
 import { HelpWidget } from "@/components/support/help-widget";
+import { CRMDashboard } from "./crm/CRMDashboard";
+import { LeadsView } from "./crm/LeadsView";
+import { ContactsView } from "./crm/ContactsView";
+import { CompaniesView } from "./crm/CompaniesView";
+import { ProductsView } from "./crm/ProductsView";
+import { QuotationsView } from "./crm/QuotationsView";
+import { IntegrationsView } from "./crm/IntegrationsView";
 
 const Index = () => {
   const { user } = useAuth();
@@ -292,7 +299,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex dark">
+    <div className="h-screen overflow-hidden bg-background flex dark">
       <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       <div className="flex-1 flex flex-col">
         <Header />
