@@ -1,5 +1,5 @@
 import Dexie, { Table } from 'dexie';
-import { Task, User, LeaveRequest, Holiday, AttendanceRecord, Notification, Idea, Project, Team, Lead, Contact, Company, Product, Quotation, Activity, CompanyLink, SupportTicket, ActivityLog } from './types';
+import { Task, User, LeaveRequest, Holiday, AttendanceRecord, Notification, Idea, Project, Team, Lead, Contact, Company, Product, Quotation, Activity, CompanyLink, SupportTicket, ActivityLog, Wallet, Transaction, SubscriptionPlan, AIUsageLog } from './types';
 
 export class TaskHubDatabase extends Dexie {
     tasks!: Table<Task>;
@@ -20,6 +20,10 @@ export class TaskHubDatabase extends Dexie {
     companyLinks!: Table<CompanyLink>;
     supportTickets!: Table<SupportTicket>;
     activityLogs!: Table<ActivityLog>;
+    wallets!: Table<Wallet>;
+    transactions!: Table<Transaction>;
+    subscriptionPlans!: Table<SubscriptionPlan>;
+    aiUsageLogs!: Table<AIUsageLog>;
 
     constructor() {
         super('TaskHubDatabase');
@@ -119,6 +123,26 @@ export class TaskHubDatabase extends Dexie {
             companyLinks: 'id, category, createdBy, createdAt, accessCount',
             supportTickets: 'id, createdBy, assignedTo, status, priority, createdAt',
             activityLogs: 'id, userId, entityType, entityId, createdAt'
+        });
+
+        // Version 8: Add Billing and AI Usage
+        this.version(8).stores({
+            tasks: 'id, status, priority, projectId, teamId, assignedTo, createdBy',
+            users: 'id, email, role',
+            leaves: 'id, employeeId, status, startDate',
+            holidays: 'id, date, type',
+            attendance: 'id, employeeId, date, status',
+            notifications: 'id, userId, isRead, createdAt, type',
+            ideas: 'id, createdBy, category, status, isPublic, createdAt',
+            projects: 'id, createdBy, status, createdAt',
+            teams: 'id, projectId, leadId, createdAt',
+            companyLinks: 'id, category, createdBy, createdAt, accessCount',
+            supportTickets: 'id, createdBy, assignedTo, status, priority, createdAt',
+            activityLogs: 'id, userId, entityType, entityId, createdAt',
+            wallets: 'id',
+            transactions: 'id, walletId, type, category, date',
+            subscriptionPlans: 'id, isActive',
+            aiUsageLogs: 'id, userId, feature, timestamp'
         });
     }
 }
@@ -576,6 +600,74 @@ export const seedDatabase = async () => {
     ];
 
     await db.companyLinks.bulkAdd(mockLinks);
+
+    // Seed Billing Data
+    const mockWallet: Wallet = {
+        id: "u1",
+        balance: 150.00,
+        currency: "USD",
+        updatedAt: new Date().toISOString()
+    };
+    await db.wallets.add(mockWallet);
+
+    const mockPlans: SubscriptionPlan[] = [
+        {
+            id: "plan_basic",
+            name: "Basic",
+            description: "Essential features for small teams",
+            price: 19.99,
+            currency: "USD",
+            interval: "monthly",
+            features: ["Up to 5 Users", "Basic Task Management", "Email Support"],
+            isActive: true
+        },
+        {
+            id: "plan_pro",
+            name: "Pro",
+            description: "Advanced tools for growing businesses",
+            price: 49.99,
+            currency: "USD",
+            interval: "monthly",
+            features: ["Up to 20 Users", "Advanced Analytics", "Priority Support", "AI Features"],
+            isPopular: true,
+            isActive: true
+        },
+        {
+            id: "plan_enterprise",
+            name: "Enterprise",
+            description: "Custom solutions for large organizations",
+            price: 199.99,
+            currency: "USD",
+            interval: "monthly",
+            features: ["Unlimited Users", "Dedicated Account Manager", "Custom Integrations", "SLA"],
+            isActive: true
+        }
+    ];
+    await db.subscriptionPlans.bulkAdd(mockPlans);
+
+    const mockTransactions: Transaction[] = [
+        {
+            id: "txn1",
+            walletId: "u1",
+            amount: 200.00,
+            type: "credit",
+            category: "recharge",
+            description: "Wallet Recharge",
+            status: "success",
+            date: new Date("2025-11-01").toISOString()
+        },
+        {
+            id: "txn2",
+            walletId: "u1",
+            amount: 49.99,
+            type: "debit",
+            category: "subscription",
+            description: "Pro Plan Subscription - Nov 2025",
+            status: "success",
+            date: new Date("2025-11-01").toISOString()
+        }
+    ];
+    await db.transactions.bulkAdd(mockTransactions);
 };
 
 // Helper function to create notifications

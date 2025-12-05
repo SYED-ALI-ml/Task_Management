@@ -11,7 +11,8 @@ import {
   CalendarDays,
   Clock,
   Lightbulb,
-  Link2
+  Link2,
+  Wallet
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -54,6 +55,10 @@ const crmItems = [
   { id: "products", label: "Products", icon: CheckSquare },
   { id: "quotations", label: "Quotations", icon: FileText },
   { id: "integrations", label: "Integrations", icon: Settings },
+];
+
+const billingItems = [
+  { id: "billing", label: "Billing & Usage", icon: Wallet },
 ];
 
 const settingsItems = [
@@ -113,6 +118,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
         {renderNavSection(hrManagementItems, "HR Management")}
         {renderNavSection(resourcesItems, "Resources")}
         {renderNavSection(innovationItems, "Innovation")}
+        {renderNavSection(billingItems, "Billing")}
         {renderNavSection(settingsItems)}
       </nav>
 

@@ -28,6 +28,7 @@ import { CompaniesView } from "./crm/CompaniesView";
 import { ProductsView } from "./crm/ProductsView";
 import { QuotationsView } from "./crm/QuotationsView";
 import { IntegrationsView } from "./crm/IntegrationsView";
+import { BillingDashboard } from "./billing/BillingDashboard";
 
 const Index = () => {
   const { user } = useAuth();
@@ -289,6 +290,8 @@ const Index = () => {
         return <QuotationsView />;
       case "integrations":
         return <IntegrationsView />;
+      case "billing":
+        return <BillingDashboard />;
       default:
         return null;
     }

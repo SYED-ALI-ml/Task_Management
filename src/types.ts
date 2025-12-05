@@ -279,3 +279,44 @@ export interface Activity {
     createdBy: string;
     createdAt: string;
 }
+
+// Billing & AI Usage Types
+export interface Wallet {
+    id: string; // usually userId
+    balance: number;
+    currency: string;
+    updatedAt: string;
+}
+
+export interface Transaction {
+    id: string;
+    walletId: string;
+    amount: number;
+    type: "credit" | "debit";
+    category: "recharge" | "subscription" | "ai-usage" | "refund" | "other";
+    description: string;
+    status: "success" | "pending" | "failed";
+    date: string;
+}
+
+export interface SubscriptionPlan {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    currency: string;
+    interval: "monthly" | "yearly";
+    features: string[];
+    isPopular?: boolean;
+    isActive: boolean; // If false, new users can't subscribe
+}
+
+export interface AIUsageLog {
+    id: string;
+    userId: string;
+    feature: string; // e.g., "text-generation", "image-generation"
+    model: string; // e.g., "gpt-4", "dall-e-3"
+    tokensUsed: number;
+    cost: number;
+    timestamp: string;
+}
