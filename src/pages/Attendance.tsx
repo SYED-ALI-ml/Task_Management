@@ -90,60 +90,124 @@ export function Attendance() {
     };
 
     const handleCheckIn = async () => {
-        if (!user) return;
+        if (!user) {
+            toast({
+                title: "Error",
+                description: "User not found. Please log in again.",
+                variant: "destructive",
+            });
+            return;
+        }
 
-        const now = new Date();
-        const currentTime = format(now, "hh:mm a");
-        const currentDate = format(now, "yyyy-MM-dd");
+        try {
+            const now = new Date();
+            const currentTime = format(now, "hh:mm a");
+            const currentDate = format(now, "yyyy-MM-dd");
 
-        // Simulate face recognition (capture image)
-        const faceImage = isCameraActive ? captureImage() : "";
+            // Capture face image only if camera is active (optional)
+            const faceImage = isCameraActive ? captureImage() : "";
 
-        // Determine status based on time (9 AM is on-time)
-        const hour = now.getHours();
-        const minute = now.getMinutes();
-        const isLate = hour > 9 || (hour === 9 && minute > 15);
+            // Determine status based on time (9 AM is on-time, 15 min grace period)
+            const hour = now.getHours();
+            const minute = now.getMinutes();
+            const isLate = hour > 9 || (hour === 9 && minute > 15);
 
-        const newRecord: AttendanceRecord = {
-            id: `a${Date.now()}`,
-            employeeId: user.id,
-            employeeName: user.name,
-            date: currentDate,
-            checkIn: currentTime,
-            status: isLate ? "late" : "present",
-            faceImage,
-        };
+            const newRecord: AttendanceRecord = {
+                id: `a${Date.now()}`,
+                employeeId: user.id,
+                employeeName: user.name,
+                date: currentDate,
+                checkIn: currentTime,
+                status: isLate ? "late" : "present",
+                faceImage,
+            };
 
-        await db.attendance.add(newRecord);
+            await db.attendance.add(newRecord);
 
-        toast({
-            title: "Success",
-            description: `Checked in at ${currentTime}`,
-        });
+            // Log activity
+            await db.activityLogs.add({
+                id: `log${Date.now()}`,
+                userId: user.id,
+                userName: user.name,
+                action: "checked in",
+                entityType: "user",
+                entityId: user.id,
+                entityName: user.name,
+                details: `Checked in at ${currentTime} - Status: ${isLate ? "Late" : "On Time"}`,
+                createdAt: now.toISOString(),
+            });
 
-        stopCamera();
-        setIsCheckInDialogOpen(false);
+            toast({
+                title: "Check-In Successful",
+                description: `Checked in at ${currentTime}${isLate ? " (Late)" : " (On Time)"}`,
+            });
+
+            stopCamera();
+            setIsCheckInDialogOpen(false);
+        } catch (error) {
+            console.error("Check-in error:", error);
+            toast({
+                title: "Error",
+                description: "Failed to check in. Please try again.",
+                variant: "destructive",
+            });
+        }
     };
 
     const handleCheckOut = async () => {
-        if (!todayRecord || !user) return;
+        if (!todayRecord || !user) {
+            toast({
+                title: "Error",
+                description: "No check-in record found for today.",
+                variant: "destructive",
+            });
+            return;
+        }
 
-        const currentTime = format(new Date(), "hh:mm a");
+        try {
+            const now = new Date();
+            const currentTime = format(now, "hh:mm a");
 
-        // Calculate work hours
-        const checkInTime = new Date(`2000-01-01 ${todayRecord.checkIn}`);
-        const checkOutTime = new Date(`2000-01-01 ${currentTime}`);
-        const workHours = (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
+            // Calculate work hours with better time parsing
+            // Parse both times on the same date to avoid timezone issues
+            const today = format(now, "yyyy-MM-dd");
+            const checkInTime = new Date(`${today} ${todayRecord.checkIn}`);
+            const checkOutTime = new Date(`${today} ${currentTime}`);
 
-        await db.attendance.update(todayRecord.id, {
-            checkOut: currentTime,
-            workHours: Math.round(workHours * 10) / 10,
-        });
+            // Calculate hours difference
+            const workHoursRaw = (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
+            const workHours = Math.max(0, Math.round(workHoursRaw * 10) / 10); // Ensure non-negative
 
-        toast({
-            title: "Success",
-            description: `Checked out at ${currentTime}. Total work hours: ${Math.round(workHours * 10) / 10}`,
-        });
+            await db.attendance.update(todayRecord.id, {
+                checkOut: currentTime,
+                workHours: workHours,
+            });
+
+            // Log activity
+            await db.activityLogs.add({
+                id: `log${Date.now()}`,
+                userId: user.id,
+                userName: user.name,
+                action: "checked out",
+                entityType: "user",
+                entityId: user.id,
+                entityName: user.name,
+                details: `Checked out at ${currentTime} - Work hours: ${workHours}h`,
+                createdAt: now.toISOString(),
+            });
+
+            toast({
+                title: "Check-Out Successful",
+                description: `Checked out at ${currentTime}. Total work hours: ${workHours}h`,
+            });
+        } catch (error) {
+            console.error("Check-out error:", error);
+            toast({
+                title: "Error",
+                description: "Failed to check out. Please try again.",
+                variant: "destructive",
+            });
+        }
     };
 
     const handleRequestRegularization = () => {
@@ -509,7 +573,7 @@ export function Attendance() {
                                 </div>
                             )}
                             <p className="text-sm text-muted-foreground text-center">
-                                Position your face in the center of the frame
+                                {isCameraActive ? "Position your face in the center of the frame" : "Camera is optional. You can check in without a photo."}
                             </p>
                         </div>
                     </div>
@@ -520,9 +584,9 @@ export function Attendance() {
                         }}>
                             Cancel
                         </Button>
-                        <Button onClick={handleCheckIn} disabled={!isCameraActive}>
+                        <Button onClick={handleCheckIn}>
                             <Check className="w-4 h-4 mr-2" />
-                            Check In
+                            Check In {!isCameraActive && "(Without Photo)"}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
