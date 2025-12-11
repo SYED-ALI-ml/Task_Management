@@ -231,6 +231,24 @@ export interface Contact {
     phone: string;
     companyId: string;
     role: string;
+    // New fields
+    social?: {
+        linkedin?: string;
+        twitter?: string;
+        facebook?: string;
+    };
+    address?: {
+        street?: string;
+        city?: string;
+        state?: string;
+        zip?: string;
+        country?: string;
+    };
+    notes?: string;
+    tags?: string[];
+    source?: string;
+    dob?: string;
+
     createdAt: string;
     updatedAt: string;
 }

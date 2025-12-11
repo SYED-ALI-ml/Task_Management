@@ -5,7 +5,7 @@ import { Contact } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Search, Mail, Phone, Building2, User } from "lucide-react";
-import { NewContactSheet } from "@/components/crm/new-contact-sheet";
+import { ContactDialog } from "@/components/crm/contact-dialog";
 import {
     Table,
     TableBody,
@@ -17,7 +17,8 @@ import {
 import { format } from "date-fns";
 
 export const ContactsView = () => {
-    const [isNewContactOpen, setIsNewContactOpen] = useState(false);
+    const [selectedContact, setSelectedContact] = useState<Contact | undefined>(undefined);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
 
     const contacts = useLiveQuery(() => db.contacts.toArray()) || [];
@@ -33,15 +34,14 @@ export const ContactsView = () => {
         return companies.find(c => c.id === companyId)?.name || "Unknown Company";
     };
 
-    const handleCreateContact = async (contactData: Omit<Contact, "id" | "createdAt" | "updatedAt">) => {
-        const newContact: Contact = {
-            id: `ct${Date.now()}`,
-            ...contactData,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-        };
+    const handleEdit = (contact: Contact) => {
+        setSelectedContact(contact);
+        setIsDialogOpen(true);
+    };
 
-        await db.contacts.add(newContact);
+    const handleCreate = () => {
+        setSelectedContact(undefined);
+        setIsDialogOpen(true);
     };
 
     return (
@@ -51,7 +51,7 @@ export const ContactsView = () => {
                     <h1 className="text-3xl font-bold tracking-tight">Contacts</h1>
                     <p className="text-muted-foreground mt-2">Manage your business contacts and relationships.</p>
                 </div>
-                <Button onClick={() => setIsNewContactOpen(true)}>
+                <Button onClick={handleCreate}>
                     <Plus className="w-4 h-4 mr-2" />
                     Add Contact
                 </Button>
@@ -79,11 +79,12 @@ export const ContactsView = () => {
                             <TableHead>Email</TableHead>
                             <TableHead>Phone</TableHead>
                             <TableHead>Added</TableHead>
+                            <TableHead>Actions</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {filteredContacts.map((contact) => (
-                            <TableRow key={contact.id}>
+                            <TableRow key={contact.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleEdit(contact)}>
                                 <TableCell className="font-medium">
                                     <div className="flex items-center space-x-3">
                                         <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
@@ -114,11 +115,14 @@ export const ContactsView = () => {
                                 <TableCell className="text-muted-foreground text-xs">
                                     {format(new Date(contact.createdAt), 'MMM d, yyyy')}
                                 </TableCell>
+                                <TableCell>
+                                    <Button variant="ghost" size="sm" onClick={(e) => { e.stopPropagation(); handleEdit(contact); }}>Edit</Button>
+                                </TableCell>
                             </TableRow>
                         ))}
                         {filteredContacts.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                                     No contacts found.
                                 </TableCell>
                             </TableRow>
@@ -127,10 +131,10 @@ export const ContactsView = () => {
                 </Table>
             </div>
 
-            <NewContactSheet
-                isOpen={isNewContactOpen}
-                onClose={() => setIsNewContactOpen(false)}
-                onCreate={handleCreateContact}
+            <ContactDialog
+                isOpen={isDialogOpen}
+                onClose={() => setIsDialogOpen(false)}
+                contact={selectedContact}
             />
         </div>
     );
