@@ -12,11 +12,11 @@ export function CRMDashboard() {
 
     const totalRevenue = quotations
         .filter(q => q.status === "accepted")
-        .reduce((sum, q) => sum + q.total, 0);
+        .reduce((sum, q) => sum + q.totalAmount, 0);
 
     const pipelineValue = quotations
         .filter(q => q.status === "sent")
-        .reduce((sum, q) => sum + q.total, 0);
+        .reduce((sum, q) => sum + q.totalAmount, 0);
 
     const newLeadsCount = leads.filter(l => l.status === "new").length;
 
