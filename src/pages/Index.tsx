@@ -9,9 +9,10 @@ import { TaskList } from "@/components/tasks/task-list";
 import { TaskDetailSheet } from "@/components/tasks/task-detail-sheet";
 import { Task, FollowUp } from "@/types";
 import { format } from "date-fns";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db, seedDatabase } from "@/db";
 import { useAuth } from "@/context/AuthContext";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchTasks, createActivityLog } from "@/lib/api";
+import api from "@/lib/api";
 import Settings from "./Settings";
 import { DirectoryView } from "@/components/dashboard/directory-view";
 import { NewTaskSheet } from "@/components/tasks/new-task-sheet";
@@ -41,27 +42,28 @@ const Index = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
 
-  // Seed database on mount
-  useEffect(() => {
-    seedDatabase();
-  }, []);
+  // Fetch tasks from MySQL
+  const { data: allTasks = [], isLoading: loading } = useQuery({
+    queryKey: ['tasks'],
+    queryFn: fetchTasks
+  });
 
-  // Fetch tasks from local DB
-  const allTasks = useLiveQuery(() => db.tasks.toArray()) || [];
-  const loading = !allTasks;
+  const queryClient = useQueryClient();
 
   // Filter tasks based on role and deleted status
   const isAdmin = user?.role === "Admin" || user?.role === "Manager";
-  const activeTasks = allTasks.filter(t => !t.isDeleted);
-  const deletedTasks = allTasks.filter(t => t.isDeleted);
+  // Assuming API returns all tasks, we filter locally for now. 
+  // In a real app, filtering should happen on backend.
+  const activeTasks = allTasks.filter((t: Task) => !t.isDeleted);
+  const deletedTasks = allTasks.filter((t: Task) => t.isDeleted);
 
-  const myTasks = activeTasks.filter(t => t.assignedTo === user?.id);
+  const myTasks = activeTasks.filter((t: Task) => t.assignedTo === user?.id);
 
   // Dashboard tasks: Admin sees all active, Employee sees theirs
   const baseDashboardTasks = isAdmin ? activeTasks : myTasks;
 
   // Apply filters and search
-  const dashboardTasks = baseDashboardTasks.filter(task => {
+  const dashboardTasks = baseDashboardTasks.filter((task: Task) => {
     const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       task.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || task.status === statusFilter;
@@ -73,9 +75,9 @@ const Index = () => {
   // Compute TaskStats (global or personal)
   const statsTasks = baseDashboardTasks;
   const totalTasks = statsTasks.length;
-  const completedTasks = statsTasks.filter((t) => t.status === "completed").length;
-  const pendingTasks = statsTasks.filter((t) => t.status === "pending").length;
-  const overdueTasks = statsTasks.filter((t) => t.status === "overdue").length;
+  const completedTasks = statsTasks.filter((t: Task) => t.status === "completed").length;
+  const pendingTasks = statsTasks.filter((t: Task) => t.status === "pending").length;
+  const overdueTasks = statsTasks.filter((t: Task) => t.status === "overdue").length;
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
@@ -84,23 +86,8 @@ const Index = () => {
 
   const handleAddFollowUp = async (taskId: string, content: string) => {
     if (!user) return;
-
-    const newFollowUp: FollowUp = {
-      id: `f${Date.now()}`,
-      content,
-      author: user,
-      createdAt: format(new Date(), "MMM d, yyyy h:mm a")
-    };
-
-    const task = await db.tasks.get(taskId);
-    if (task) {
-      const updatedFollowUps = [...(task.followUps || []), newFollowUp];
-      await db.tasks.update(taskId, { followUps: updatedFollowUps });
-
-      if (selectedTask && selectedTask.id === taskId) {
-        setSelectedTask({ ...task, followUps: updatedFollowUps });
-      }
-    }
+    // TODO: Implement API for follow-ups
+    console.log("Follow-up implementation pending for MySQL");
   };
 
   const handleCreateTask = async (taskData: any) => {
@@ -112,59 +99,90 @@ const Index = () => {
       isDeleted: false
     };
 
-    await db.tasks.add(newTask);
-
-    // Log activity
-    if (user) {
-      await db.activityLogs.add({
-        id: `log${Date.now()}`,
-        userId: user.id,
-        userName: user.name,
-        action: "created task",
-        entityType: "task",
-        entityId: newTask.id,
-        entityName: newTask.title,
-        createdAt: new Date().toISOString()
+    try {
+      await api.post('/tasks', {
+        ...taskData,
+        id: newTask.id,
+        projectId: taskData.projectId,
+        teamId: taskData.teamId,
+        assignedTo: taskData.assignedTo,
+        priority: taskData.priority,
+        status: taskData.status || "pending",
+        dueDate: taskData.dueDate
       });
-    }
 
-    // Notify Assignee
-    if (newTask.assignedTo) {
-      const assigneeUser = await db.users.get(newTask.assignedTo);
-      if (assigneeUser) {
-        await db.notifications.add({
-          id: `n${Date.now()}`,
-          userId: assigneeUser.id,
-          type: "task",
-          priority: newTask.priority === "urgent" ? "high" : "medium",
-          title: "New Task Assigned",
-          message: `You have been assigned a new task: ${newTask.title}`,
-          link: "/my-tasks",
-          createdAt: new Date().toISOString(),
-          isRead: false,
-          metadata: { taskId: newTask.id }
+      // Log activity
+      if (user) {
+        await createActivityLog({
+          entityType: "task",
+          entityId: newTask.id,
+          entityName: taskData.title,
+          action: "created",
+          userId: user.id,
+          userName: user.name,
+          details: `Task created in ${taskData.projectId ? 'Project' : 'General'}`
         });
       }
+
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
+    } catch (e) {
+      console.error("Failed to create task", e);
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    // Soft delete
-    await db.tasks.update(taskId, { isDeleted: true });
+    // Soft delete implementation via API (updating isDeleted status if backend supports it, or just deleting)
+    // For now, mapping soft-delete to direct delete or status update depending on requirement.
+    // Assuming permanent delete for MVP or verify if 'isDeleted' column exists in schema.
+    // Checking schema: tasks table does NOT have is_deleted column. So standard DELETE.
+    try {
+      await api.delete(`/tasks/${taskId}`);
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+    } catch (e) {
+      console.error("Failed to delete task", e);
+    }
   };
 
   const handleRestoreTask = async (taskId: string) => {
-    await db.tasks.update(taskId, { isDeleted: false });
+    // Not applicable as we are doing permanent delete above
+    console.log("Restore not implemented for SQL version yet");
   };
 
   const handlePermanentDeleteTask = async (taskId: string) => {
-    await db.tasks.delete(taskId);
+    try {
+      const taskToDelete = allTasks.find((t: Task) => t.id === taskId);
+      await api.delete(`/tasks/${taskId}`);
+
+      // Log activity
+      if (user && taskToDelete) {
+        await createActivityLog({
+          entityType: "task",
+          entityId: taskId,
+          entityName: taskToDelete.title,
+          action: "deleted",
+          userId: user.id,
+          userName: user.name,
+          details: "Task permanently deleted"
+        });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
+    } catch (e) {
+      console.error("Failed to delete task", e);
+    }
   };
 
   const handleUpdateTask = async (taskId: string, updates: Partial<Task>) => {
-    await db.tasks.update(taskId, updates);
-    if (selectedTask && selectedTask.id === taskId) {
-      setSelectedTask({ ...selectedTask, ...updates });
+    try {
+      await api.patch(`/tasks/${taskId}`, updates);
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      if (selectedTask && selectedTask.id === taskId) {
+        setSelectedTask({ ...selectedTask, ...updates });
+      }
+    } catch (e) {
+      console.error("Failed to update task", e);
     }
   };
 

@@ -20,9 +20,9 @@ import { Calendar, Clock, Send, User as UserIcon, CheckCircle, Trash2, Edit2, Sa
 import { Task } from "@/types";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { db } from "@/db";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchUsers, fetchProjects, fetchTeams, fetchTaskComments, createTaskComment, createActivityLog } from "@/lib/api";
 import { useToast } from "@/components/ui/use-toast";
-import { useLiveQuery } from "dexie-react-hooks";
 
 interface TaskDetailSheetProps {
     task: Task | null;
@@ -41,11 +41,18 @@ export function TaskDetailSheet({ task, isOpen, onClose, onAddFollowUp, onDelete
     const [editedTask, setEditedTask] = useState<Partial<Task>>({});
     const { user } = useAuth();
     const { toast } = useToast();
+    const queryClient = useQueryClient();
 
     // Fetch data for editing
-    const users = useLiveQuery(() => db.users.toArray()) || [];
-    const projects = useLiveQuery(() => db.projects.toArray()) || [];
-    const teams = useLiveQuery(() => db.teams.toArray()) || [];
+    const { data: users = [] } = useQuery({ queryKey: ['users'], queryFn: fetchUsers });
+    const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: fetchProjects });
+    const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: fetchTeams });
+
+    // Fetch comments
+    const { data: comments = [], refetch: refetchComments } = useQuery({
+        queryKey: ['comments', task?.id],
+        queryFn: () => task ? fetchTaskComments(task.id) : Promise.resolve([])
+    });
 
     // Derived data for display
     const project = projects.find(p => p.id === task?.projectId);
@@ -70,42 +77,22 @@ export function TaskDetailSheet({ task, isOpen, onClose, onAddFollowUp, onDelete
 
     const handleSubmit = async () => {
         if (!comment.trim()) return;
-        onAddFollowUp(task.id, comment);
 
-        // Log activity
-        if (user) {
-            await db.activityLogs.add({
-                id: `log${Date.now()}`,
-                userId: user.id,
-                userName: user.name,
-                action: "commented on",
-                entityType: "task",
-                entityId: task.id,
-                entityName: task.title,
-                details: comment.substring(0, 50) + (comment.length > 50 ? "..." : ""),
-                createdAt: new Date().toISOString()
-            });
+        try {
+            await createTaskComment(task.id, user?.id || 'unknown', comment);
+            refetchComments();
+            setComment("");
+        } catch (error) {
+            console.error("Failed to post comment", error);
         }
-
-        setComment("");
     };
 
     const handleMarkCompleted = async () => {
-        await db.tasks.update(task.id, { status: "completed" });
+        // await db.tasks.update(task.id, { status: "completed" });
+        if (onUpdate) onUpdate(task.id, { status: "completed" }); // Use prop handler which calls API
 
-        // Log activity
-        if (user) {
-            await db.activityLogs.add({
-                id: `log${Date.now()}`,
-                userId: user.id,
-                userName: user.name,
-                action: "completed task",
-                entityType: "task",
-                entityId: task.id,
-                entityName: task.title,
-                createdAt: new Date().toISOString()
-            });
-        }
+        // Log activity placeholder
+        console.log("Activity log pending API");
 
         toast({
             title: "Task Completed",
@@ -121,19 +108,8 @@ export function TaskDetailSheet({ task, isOpen, onClose, onAddFollowUp, onDelete
             onDelete(task.id);
         }
 
-        // Log activity
-        if (user) {
-            await db.activityLogs.add({
-                id: `log${Date.now()}`,
-                userId: user.id,
-                userName: user.name,
-                action: task.isDeleted ? "permanently deleted task" : "deleted task",
-                entityType: "task",
-                entityId: task.id,
-                entityName: task.title,
-                createdAt: new Date().toISOString()
-            });
-        }
+        // Log activity placeholder
+        console.log("Activity log pending API");
 
         onClose();
     };
@@ -142,38 +118,64 @@ export function TaskDetailSheet({ task, isOpen, onClose, onAddFollowUp, onDelete
         if (onRestore) {
             onRestore(task.id);
 
-            // Log activity
-            if (user) {
-                await db.activityLogs.add({
-                    id: `log${Date.now()}`,
-                    userId: user.id,
-                    userName: user.name,
-                    action: "restored task",
-                    entityType: "task",
-                    entityId: task.id,
-                    entityName: task.title,
-                    createdAt: new Date().toISOString()
-                });
-            }
+            // Log activity placeholder
+            console.log("Activity log pending API");
 
             onClose();
         }
     };
 
-    const handleSave = () => {
-        if (onUpdate && editedTask) {
-            // If assignedTo changed, update assignedToName
-            let updates = { ...editedTask };
-            if (editedTask.assignedTo && editedTask.assignedTo !== task.assignedTo) {
-                const assignedUser = users.find(u => u.id === editedTask.assignedTo);
-                updates.assignedToName = assignedUser?.name || "Unknown";
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (!onUpdate || !editedTask) return;
+
+        // Ensure assignedTo is set to a valid value (or null if unassigned)
+        let updates: Partial<Task> = {
+            ...editedTask,
+            assignedTo: editedTask.assignedTo === "unassigned" ? null : editedTask.assignedTo
+        };
+
+        // If assignedTo changed, update assignedToName
+        if (editedTask.assignedTo && editedTask.assignedTo !== task.assignedTo) {
+            const assignedUser = users.find(u => u.id === editedTask.assignedTo);
+            updates.assignedToName = assignedUser?.name || "Unassigned";
+        } else if (editedTask.assignedTo === null && task.assignedTo !== null) {
+            // If assignedTo was changed to null (unassigned)
+            updates.assignedToName = "Unassigned";
+        }
+
+        try {
+            await onUpdate(task.id, updates);
+
+            // Log activity
+            if (user) {
+                await createActivityLog({
+                    entityType: "task",
+                    entityId: task.id,
+                    entityName: editedTask.title || task.title, // Use edited title if available, else current task title
+                    action: "updated",
+                    userId: user.id,
+                    userName: user.name,
+                    details: "Task details updated"
+                });
             }
 
-            onUpdate(task.id, updates);
             setIsEditing(false);
+
             toast({
                 title: "Task Updated",
                 description: "Task details have been updated successfully.",
+            });
+
+            // Invalidate queries to refresh data
+            queryClient.invalidateQueries({ queryKey: ['tasks'] });
+            queryClient.invalidateQueries({ queryKey: ['activity-logs'] });
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "Failed to update task.",
+                variant: "destructive"
             });
         }
     };
@@ -187,15 +189,18 @@ export function TaskDetailSheet({ task, isOpen, onClose, onAddFollowUp, onDelete
                 <SheetHeader className="mb-6">
                     <div className="flex items-start justify-between">
                         <div className="space-y-1 flex-1 mr-4">
+                            {/* Accessibility: DialogTitle must always be present */}
+                            <SheetTitle className={`${isEditing ? 'sr-only' : 'text-xl'}`}>
+                                {task.title}
+                            </SheetTitle>
+
                             {isEditing ? (
                                 <Input
-                                    value={editedTask.title}
+                                    value={editedTask.title || ""}
                                     onChange={(e) => setEditedTask({ ...editedTask, title: e.target.value })}
                                     className="text-xl font-semibold"
                                 />
-                            ) : (
-                                <SheetTitle className="text-xl">{task.title}</SheetTitle>
-                            )}
+                            ) : null}
                             <SheetDescription>Created {task.createdAt}</SheetDescription>
                         </div>
                         <Badge variant={task.status === "completed" ? "default" : "secondary"}>
@@ -231,7 +236,7 @@ export function TaskDetailSheet({ task, isOpen, onClose, onAddFollowUp, onDelete
                             <UserIcon className="w-4 h-4" />
                             {isEditing && canManage ? (
                                 <Select
-                                    value={editedTask.assignedTo}
+                                    value={editedTask.assignedTo || ""}
                                     onValueChange={(value) => setEditedTask({ ...editedTask, assignedTo: value })}
                                 >
                                     <SelectTrigger className="h-8">
@@ -252,7 +257,7 @@ export function TaskDetailSheet({ task, isOpen, onClose, onAddFollowUp, onDelete
                             {isEditing ? (
                                 <Input
                                     type="date"
-                                    value={editedTask.dueDate}
+                                    value={editedTask.dueDate || ""}
                                     onChange={(e) => setEditedTask({ ...editedTask, dueDate: e.target.value })}
                                     className="h-8"
                                 />
@@ -264,7 +269,7 @@ export function TaskDetailSheet({ task, isOpen, onClose, onAddFollowUp, onDelete
                             <Clock className="w-4 h-4" />
                             {isEditing ? (
                                 <Select
-                                    value={editedTask.priority}
+                                    value={editedTask.priority || ""}
                                     onValueChange={(value: any) => setEditedTask({ ...editedTask, priority: value })}
                                 >
                                     <SelectTrigger className="h-8">
@@ -295,7 +300,7 @@ export function TaskDetailSheet({ task, isOpen, onClose, onAddFollowUp, onDelete
                         </div>
                         {isEditing ? (
                             <Textarea
-                                value={editedTask.description}
+                                value={editedTask.description || ""}
                                 onChange={(e) => setEditedTask({ ...editedTask, description: e.target.value })}
                                 rows={4}
                             />
@@ -369,19 +374,19 @@ export function TaskDetailSheet({ task, isOpen, onClose, onAddFollowUp, onDelete
                         <h3 className="font-semibold text-sm mb-4">Follow-ups & Activity</h3>
                         <ScrollArea className="flex-1 pr-4 -mr-4">
                             <div className="space-y-4">
-                                {task.followUps?.map((followUp) => {
-                                    const isMe = followUp.author.id === user?.id;
+                                {comments.map((followUp: any) => {
+                                    const isMe = followUp.user_id === user?.id;
                                     return (
                                         <div key={followUp.id} className={`flex gap-3 ${isMe ? "flex-row-reverse" : ""}`}>
                                             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                                                 <span className="text-xs font-bold text-primary">
-                                                    {followUp.author.name.charAt(0)}
+                                                    {(followUp.user_name || "U").charAt(0)}
                                                 </span>
                                             </div>
                                             <div className={`flex flex-col ${isMe ? "items-end" : "items-start"} max-w-[80%]`}>
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-xs font-medium">{followUp.author.name}</span>
-                                                    <span className="text-[10px] text-muted-foreground">{followUp.createdAt}</span>
+                                                    <span className="text-xs font-medium">{followUp.user_name}</span>
+                                                    <span className="text-[10px] text-muted-foreground">{new Date(followUp.created_at).toLocaleString()}</span>
                                                 </div>
                                                 <div className={`p-3 rounded-lg text-sm ${isMe
                                                     ? "bg-primary text-primary-foreground rounded-tr-none"
@@ -393,7 +398,7 @@ export function TaskDetailSheet({ task, isOpen, onClose, onAddFollowUp, onDelete
                                         </div>
                                     );
                                 })}
-                                {(!task.followUps || task.followUps.length === 0) && (
+                                {comments.length === 0 && (
                                     <p className="text-sm text-muted-foreground text-center py-8">No follow-ups yet.</p>
                                 )}
                             </div>

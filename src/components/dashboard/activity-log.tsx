@@ -1,5 +1,3 @@
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/db";
 import { formatDistanceToNow } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -11,11 +9,15 @@ import {
     HelpCircle,
     User
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchActivityLogs } from "@/lib/api";
 
 export function ActivityLogView() {
-    const logs = useLiveQuery(() =>
-        db.activityLogs.orderBy("createdAt").reverse().limit(50).toArray()
-    ) || [];
+    const { data: logs = [] } = useQuery({
+        queryKey: ['activity-logs'],
+        queryFn: fetchActivityLogs,
+        refetchInterval: 5000 // Poll every 5 seconds for updates
+    });
 
     const getIcon = (type: string) => {
         switch (type) {
@@ -35,24 +37,24 @@ export function ActivityLogView() {
             <ScrollArea className="h-[400px] pr-4">
                 <div className="space-y-4">
                     {logs.length > 0 ? (
-                        logs.map((log) => (
+                        logs.map((log: any) => (
                             <div key={log.id} className="flex items-start gap-3 text-sm">
                                 <div className="mt-1 bg-muted p-1.5 rounded-full">
-                                    {getIcon(log.entityType)}
+                                    {getIcon(log.entity_type)}
                                 </div>
                                 <div className="flex-1 space-y-1">
                                     <p className="leading-none">
-                                        <span className="font-medium">{log.userName}</span>
+                                        <span className="font-medium">{log.user_name}</span>
                                         {" "}
                                         <span className="text-muted-foreground">{log.action}</span>
                                         {" "}
-                                        <span className="font-medium text-foreground">{log.entityName}</span>
+                                        <span className="font-medium text-foreground">{log.entity_name}</span>
                                     </p>
                                     {log.details && (
                                         <p className="text-xs text-muted-foreground">{log.details}</p>
                                     )}
                                     <p className="text-xs text-muted-foreground">
-                                        {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true })}
+                                        {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
                                     </p>
                                 </div>
                             </div>

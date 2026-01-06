@@ -1,7 +1,7 @@
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/db";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchUsers, createUser, deleteUser } from "@/lib/api";
 import { useState } from "react";
 import { User } from "@/types";
 import { useToast } from "@/components/ui/use-toast";
@@ -29,7 +29,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function DirectoryView() {
-    const users = useLiveQuery(() => db.users.toArray()) || [];
+    const { data: users = [], isLoading } = useQuery({ queryKey: ['users'], queryFn: fetchUsers });
+    const queryClient = useQueryClient();
     const { toast } = useToast();
     const { user } = useAuth();
 
@@ -62,18 +63,27 @@ export function DirectoryView() {
             role: newEmployeeRole,
         };
 
-        await db.users.add(newUser);
+        try {
+            await createUser(newUser);
+            queryClient.invalidateQueries({ queryKey: ['users'] });
 
-        toast({
-            title: "Success",
-            description: "Member added successfully",
-        });
+            toast({
+                title: "Success",
+                description: "Member added successfully",
+            });
 
-        // Reset form and close dialog
-        setNewEmployeeName("");
-        setNewEmployeeEmail("");
-        setNewEmployeeRole("Employee");
-        setIsDialogOpen(false);
+            // Reset form and close dialog
+            setNewEmployeeName("");
+            setNewEmployeeEmail("");
+            setNewEmployeeRole("Employee");
+            setIsDialogOpen(false);
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "Failed to add member",
+                variant: "destructive",
+            });
+        }
     };
 
     const handleDeleteClick = (member: User) => {
@@ -94,7 +104,8 @@ export function DirectoryView() {
         if (!memberToDelete) return;
 
         try {
-            await db.users.delete(memberToDelete.id);
+            await deleteUser(memberToDelete.id);
+            queryClient.invalidateQueries({ queryKey: ['users'] });
 
             toast({
                 title: "Success",
@@ -113,6 +124,10 @@ export function DirectoryView() {
     };
 
     const canManageMembers = user?.role === "Admin" || user?.role === "HR";
+
+    if (isLoading) {
+        return <div className="p-8 text-center text-muted-foreground">Loading directory...</div>;
+    }
 
     return (
         <div className="p-8">
@@ -144,7 +159,7 @@ export function DirectoryView() {
                     {users.length === 0 ? (
                         <div className="p-8 text-center text-muted-foreground">No members found.</div>
                     ) : (
-                        users.map((member) => (
+                        users.map((member: User) => (
                             <div key={member.id} className="grid grid-cols-5 gap-4 p-4 items-center hover:bg-muted/10">
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">

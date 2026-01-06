@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/db";
+import { useQuery } from "@tanstack/react-query";
+import { fetchUsers, fetchProjects, fetchTeams } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -21,9 +21,9 @@ export function NewTaskSheet({ isOpen, onClose, onCreate }: NewTaskSheetProps) {
     const { toast } = useToast();
 
     // Fetch data
-    const users = useLiveQuery(() => db.users.toArray()) || [];
-    const projects = useLiveQuery(() => db.projects.toArray()) || [];
-    const teams = useLiveQuery(() => db.teams.toArray()) || [];
+    const { data: users = [] } = useQuery({ queryKey: ['users'], queryFn: fetchUsers });
+    const { data: projects = [] } = useQuery({ queryKey: ['projects'], queryFn: fetchProjects });
+    const { data: teams = [] } = useQuery({ queryKey: ['teams'], queryFn: fetchTeams });
 
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");

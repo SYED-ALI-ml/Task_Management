@@ -3,22 +3,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Clock, User, Calendar, MoreVertical, Folder, Users } from "lucide-react";
 import { Task } from "@/types";
-import { useLiveQuery } from "dexie-react-hooks";
-import { db } from "@/db";
+import { useQuery } from "@tanstack/react-query";
+import { fetchProjects, fetchTeams } from "@/lib/api";
 
 interface TaskListProps {
   tasks: Task[];
   onTaskClick?: (task: Task) => void;
 }
 
-const statusColors = {
+const statusColors: Record<string, string> = {
   pending: "bg-warning text-warning-foreground",
   "in-progress": "bg-info text-info-foreground",
   completed: "bg-success text-success-foreground",
   overdue: "bg-destructive text-destructive-foreground"
 };
 
-const priorityColors = {
+const priorityColors: Record<string, string> = {
   low: "bg-muted text-muted-foreground",
   medium: "bg-warning text-warning-foreground",
   high: "bg-destructive text-destructive-foreground",
@@ -26,11 +26,18 @@ const priorityColors = {
 };
 
 export function TaskList({ tasks, onTaskClick }: TaskListProps) {
-  const projects = useLiveQuery(() => db.projects.toArray()) || [];
-  const teams = useLiveQuery(() => db.teams.toArray()) || [];
+  const { data: projects = [] } = useQuery({
+    queryKey: ['projects'],
+    queryFn: fetchProjects
+  });
 
-  const getProjectName = (id: string) => projects.find(p => p.id === id)?.name || "Unknown Project";
-  const getTeamName = (id: string) => teams.find(t => t.id === id)?.name || "Unknown Team";
+  const { data: teams = [] } = useQuery({
+    queryKey: ['teams'],
+    queryFn: fetchTeams
+  });
+
+  const getProjectName = (id: string) => projects.find((p: any) => p.id === id)?.name || "Unknown Project";
+  const getTeamName = (id: string) => teams.find((t: any) => t.id === id)?.name || "Unknown Team";
 
   return (
     <div className="space-y-4">
@@ -74,7 +81,7 @@ export function TaskList({ tasks, onTaskClick }: TaskListProps) {
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
-                    <span>Created {task.createdAt}</span>
+                    <span>Created {new Date(task.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>
               </div>
